@@ -40,6 +40,9 @@ class Settings(BaseSettings):
     # 反向触发鉴权(供 /api/backfill 等使用,本步骤仅注入 settings)
     REGEN_TOKEN: str = ""
 
+    # CORS 白名单(逗号分隔的 URL 列表;空字符串 → allow_origins=["*"],本地预览常用)
+    SITE_URL: str = ""
+
 
 settings = Settings()
 
