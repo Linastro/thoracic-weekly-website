@@ -1,6 +1,7 @@
 """Minimal application settings stub.
 
 Phase A 第 2 步只引入数据库层所需的最小配置(DB_PATH / LOG_LEVEL / TZ),
+第 4 步(LLM)扩展:PubMed key + MiniMax M3 客户端 + 反向触发 token。
 其余字段在 Phase A 第 7 步(API 层)统一扩展。
 """
 
@@ -23,6 +24,20 @@ class Settings(BaseSettings):
     DB_PATH: str = "/data/thoracic.db"
     LOG_LEVEL: str = "INFO"
     TZ: str = "Asia/Shanghai"
+
+    # PubMed
+    PUBMED_API_KEY: str = ""
+
+    # MiniMax M3 (OpenAI 兼容 chat completions)
+    LLM_BASE_URL: str = "https://api.MiniMax.chat/v1"
+    LLM_API_KEY: str = ""
+    LLM_MODEL: str = "MiniMax-M3"
+    LLM_TIMEOUT_SECONDS: int = 60
+    LLM_MAX_CONCURRENT: int = 3
+    LLM_BATCH_SIZE: int = 10
+
+    # 反向触发鉴权(供 /api/backfill 等使用,本步骤仅注入 settings)
+    REGEN_TOKEN: str = ""
 
 
 settings = Settings()
