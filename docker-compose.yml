@@ -1,0 +1,53 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    image: thoracic-server:local
+    container_name: thoracic-api
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - TZ=${TZ:-Asia/Shanghai}
+    volumes:
+      - thoracic-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    expose:
+      - "8080"
+
+  cron:
+    build:
+      context: .
+      dockerfile: cron/Dockerfile
+    image: thoracic-server:local
+    container_name: thoracic-cron
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - TZ=${TZ:-Asia/Shanghai}
+    volumes:
+      - thoracic-data:/data
+    depends_on:
+      api:
+        condition: service_healthy
+
+  web:
+    image: nginx:1.27-alpine
+    container_name: thoracic-web
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "8080:80"
+    volumes:
+      - ./web/dist:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+
+volumes:
+  thoracic-data:

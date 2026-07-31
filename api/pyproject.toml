@@ -1,0 +1,11 @@
+[project]
+name = "thoracic-server-api"
+version = "0.1.0"
+description = "FastAPI + cron package for Thoracic Weekly Server."
+requires-python = ">=3.12"
+dependencies = [
+    "thoracic-server",
+]
+
+[tool.uv.sources]
+thoracic-server = { workspace = true }

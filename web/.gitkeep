@@ -1,0 +1,4 @@
+# Placeholder for the Astro frontend.
+# The directory is mounted by docker-compose (web/dist) and by nginx.conf.
+# Real content (package.json, astro.config.mjs, src/, etc.) will be added
+# in Phase A Step 9 (Astro scaffold).

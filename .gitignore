@@ -1,0 +1,36 @@
+# Environment variables
+.env
+.env.local
+
+# Data
+data/
+thoracic.db
+thoracic.db-journal
+thoracic.db-shm
+thoracic.db-wal
+snapshots/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+dist/
+build/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node / Astro
+node_modules/
+web/dist/
+web/.astro/
+web/node_modules/
+
+# IDE
+.vscode/
+.idea/
+.DS_Store
+
+# Logs
+*.log

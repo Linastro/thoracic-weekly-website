@@ -1,0 +1,5 @@
+# Beijing time 8:00 (UTC 0:00) - fetch yesterday's PubMed thoracic literature
+0 0 * * * cd /app && python -m thoracic.pipeline.daily --target $(TZ=Asia/Shanghai date -d 'yesterday' +%Y-%m-%d) >> /var/log/cron.log 2>&1
+
+# Every Monday 10:00 Beijing - cleanup snapshots older than 180 days
+0 2 * * 1 cd /app && python -m thoracic.pipeline.cleanup --older-than 180 >> /var/log/cron.log 2>&1
