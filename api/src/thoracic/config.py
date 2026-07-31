@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     )
 
     DB_PATH: str = "/data/thoracic.db"
+    SNAPSHOT_DIR: str = "/data/snapshots"
     LOG_LEVEL: str = "INFO"
     TZ: str = "Asia/Shanghai"
 

@@ -8,7 +8,7 @@ thoracic.db
 thoracic.db-journal
 thoracic.db-shm
 thoracic.db-wal
-snapshots/
+data/snapshots/
 
 # Python
 __pycache__/
