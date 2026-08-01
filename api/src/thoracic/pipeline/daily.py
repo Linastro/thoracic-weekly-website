@@ -145,6 +145,22 @@ async def run_daily(target_date: date, *, dry_run: bool = False) -> dict[str, An
             "exclude_reason": r.get("llm_exclude_reason")
         }) for r in to_exclude]
 
+        # ==== 防污染过滤:即使 LLM 完全失败,写入 snapshot 与 SQLite 的 articles 必须只含 publish ====
+        # 双重保险:web 端 data.ts 也过滤 `llm_excluded !== 0`,但源头先滤更安全。
+        # 兜底场景:LLM 全失败 → 启发式 fallback 默认 `exclude=False` → 86 篇全部 publish →
+        # 之前会写脏 snapshot;现在源头再过一道 `exclude / llm_excluded`。
+        final_records = [
+            r for r in article_records
+            if not (r.get("llm_excluded") or r.get("exclude"))
+        ]
+        filtered_out = len(article_records) - len(final_records)
+        if filtered_out > 0:
+            log.warning(
+                f"[daily {target_date}] filtered {filtered_out} articles from snapshot "
+                f"(llm_excluded=1 or exclude=true)"
+            )
+        article_records = final_records  # 替换后续 upsert / snapshot / metadata 引用
+
         if dry_run:
             log.info(f"[daily {target_date}] DRY-RUN, skip DB writes")
             return {
@@ -152,6 +168,7 @@ async def run_daily(target_date: date, *, dry_run: bool = False) -> dict[str, An
                 "total_fetched": total_fetched,
                 "to_publish": len(to_publish),
                 "to_exclude": len(to_exclude),
+                "filtered_out": filtered_out,
                 "by_disease": _summarize_by_field(to_publish, "disease"),
                 "by_type": _summarize_by_field(to_publish, "type"),
                 "supplemental_pmids": list(supplemental_pmids),
@@ -170,7 +187,7 @@ async def run_daily(target_date: date, *, dry_run: bool = False) -> dict[str, An
         await repo.upsert_snapshot(conn, {
             "date": target_date.isoformat(),
             "generated_at": _fetched_at_iso(),
-            "article_count": len(to_publish),
+            "article_count": len(article_records),
             "total_fetched": total_fetched,
             "excluded_count": len(to_exclude),
             "by_disease_json": json.dumps(by_disease, ensure_ascii=False),
@@ -195,6 +212,7 @@ async def run_daily(target_date: date, *, dry_run: bool = False) -> dict[str, An
             "total_fetched": total_fetched,
             "to_publish": len(to_publish),
             "to_exclude": len(to_exclude),
+            "filtered_out": filtered_out,
             "by_disease": by_disease,
             "by_type": by_type,
             "supplemental_pmids": list(supplemental_pmids),

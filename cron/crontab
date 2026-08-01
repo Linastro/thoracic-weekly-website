@@ -1,5 +1,8 @@
-# Beijing time 8:00 (UTC 0:00) - fetch yesterday's PubMed thoracic literature
-0 0 * * * cd /app && python -m thoracic.pipeline.daily --target $(TZ=Asia/Shanghai date -d 'yesterday' +%Y-%m-%d) >> /var/log/cron.log 2>&1
+# Container 启动时立即 build 一次(让 web_dist 在容器首次启动就有内容)
+@reboot cd /app/web_src && npm run build && cp -R dist/. /app/web_dist/ >> /var/log/cron.log 2>&1
+
+# Beijing time 8:00 (UTC 0:00) - fetch yesterday's PubMed thoracic literature, then rebuild Astro
+0 0 * * * cd /app && python -m thoracic.pipeline.daily --target $(TZ=Asia/Shanghai date -d 'yesterday' +%Y-%m-%d) >> /var/log/cron.log 2>&1 && cd /app/web_src && npm run build && cp -R dist/. /app/web_dist/ >> /var/log/cron.log 2>&1
 
 # Every Monday 10:00 Beijing - cleanup snapshots older than 180 days
 0 2 * * 1 cd /app && python -m thoracic.pipeline.cleanup --older-than 180 >> /var/log/cron.log 2>&1

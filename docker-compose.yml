@@ -32,9 +32,11 @@ services:
       - TZ=${TZ:-Asia/Shanghai}
     volumes:
       - thoracic-data:/data
+      - web_dist:/app/web_dist     # cron build 输出 → web 容器读
     depends_on:
       api:
         condition: service_healthy
+    command: ["supercronic", "/etc/crontab"]
 
   web:
     image: nginx:1.27-alpine
@@ -46,8 +48,9 @@ services:
     ports:
       - "8080:80"
     volumes:
-      - ./web/dist:/usr/share/nginx/html:ro
+      - web_dist:/usr/share/nginx/html:ro    # 从 named volume 读(ro)
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
 
 volumes:
-  thoracic-data:
+  thoracic-data:    # SQLite + snapshot 持久化
+  web_dist:         # cron build 输出,web 容器从这里读取
