@@ -1,0 +1,64 @@
+/* Phase A step 12 — SearchIsland 客户端样式 */
+
+.search-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+  align-items: flex-end;
+}
+
+.search-input-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.search-input-row input {
+  width: 320px;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  color: var(--fg);
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.search-input-row input:focus {
+  border-color: var(--accent);
+}
+
+.search-input-row button {
+  padding: 0.5rem 0.75rem;
+  background: var(--card-bg);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  transition: all 0.15s;
+}
+.search-input-row button:hover {
+  color: var(--fg);
+  border-color: var(--accent);
+}
+
+.search-status {
+  font-size: 0.8125rem;
+  color: var(--muted);
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .search-controls {
+    align-items: stretch;
+  }
+  .search-input-row {
+    flex-wrap: wrap;
+  }
+  .search-input-row input {
+    flex: 1 1 auto;
+    min-width: 0;
+    width: auto;
+  }
+}

@@ -1,13 +1,15 @@
 ---
-/** 搜索框占位(交互 React island 留第 12 步)。 */
+/** 搜索控件 island 挂载点(第 12 步从 disabled 占位升级为 SearchIsland)。 */
+import SearchIsland from '../islands/SearchIsland';
+import type { Article } from '../lib/types';
+
+interface Props {
+  articles: Article[];
+  disease?: string;
+  type?: string;
+}
+
+const { articles, disease, type } = Astro.props;
 ---
 
-<div class="search-box" id="search-slot">
-  <input
-    type="search"
-    placeholder="搜索标题/摘要(FTS5,留第 12 步)"
-    aria-label="搜索文献"
-    disabled
-  />
-  <button type="submit" disabled>搜索</button>
-</div>
+<SearchIsland articles={articles} disease={disease} type={type} client:load />

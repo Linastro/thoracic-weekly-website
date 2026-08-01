@@ -1,10 +1,11 @@
 ---
-/** 左侧 sidebar:v4 精简版(3 分组,无主题/接入)。 */
+/** 左侧 sidebar:v4 精简版(2 个内容分组 + 1 个更多分组,主题切换已上移至 TopNav)。 */
 
 const currentPath = Astro.url.pathname;
 
 const contentSection = [
   { href: '/', label: '全部文献', match: (p: string) => p === '/' },
+  { href: '/topics', label: '主题分类', match: (p: string) => p.startsWith('/topics') },
   { href: '#', label: '周报(即将上线)', match: () => false },
 ];
 
@@ -49,10 +50,6 @@ const moreSection = [
           </a>
         ))}
       </div>
-    </div>
-
-    <div class="sidebar-section" id="theme-toggle-slot">
-      <!-- ThemeToggle island 留第 12 步 -->
     </div>
   </nav>
 </aside>

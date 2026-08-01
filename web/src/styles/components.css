@@ -406,3 +406,52 @@
   .filter-row { gap: 0.5rem; }
   .topic-grid { grid-template-columns: 1fr; }
 }
+
+/* Phase A step 11 §11.2 — filter chip 移动端水平滚动 */
+@media (max-width: 768px) {
+  .filter-chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+  }
+  .filter-chips::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
+  }
+  .chip {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+}
+
+/* Phase A step 11 — topic-card-preview-date 独立样式(原本只继承父 flex) */
+.topic-card-preview-date {
+  flex-shrink: 0;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Phase A step 11 — ThemeToggle 按钮样式 */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  color: var(--fg);
+  font-size: 0.875rem;
+  transition: all 0.15s;
+}
+.theme-toggle:hover {
+  border-color: var(--accent);
+}
+.theme-toggle[data-active='true'] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.theme-toggle-icon {
+  font-size: 1rem;
+  line-height: 1;
+}

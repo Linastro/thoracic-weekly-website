@@ -49,7 +49,7 @@ import '../styles/components.css';
     <div class="app-shell">
       <aside class="app-sidebar">
         <slot name="sidebar">
-          <!-- 默认占位,留给第 11 步的 Sidebar.astro -->
+          <!-- 默认占位,留给调用方注入 Sidebar.astro -->
           <div class="sidebar">
             <div class="sidebar-section">
               <div class="sidebar-title">THORACIC</div>
@@ -58,15 +58,15 @@ import '../styles/components.css';
         </slot>
       </aside>
       <div class="app-main">
-        <header class="topnav">
-          <div class="topnav-brand">
-            <img src="/favicon.svg" alt="logo" width="28" height="28" />
-            <span>{title}</span>
-          </div>
-          <slot name="topnav-right">
-            <div class="topnav-meta">脚手架预览</div>
-          </slot>
-        </header>
+        <slot name="topnav-right">
+          <!-- 默认占位,留待调用方注入 TopNav.astro -->
+          <header class="topnav">
+            <div class="topnav-brand">
+              <img src="/favicon.svg" alt="logo" width="28" height="28" />
+              <span>{title}</span>
+            </div>
+          </header>
+        </slot>
         <main class="app-content">
           <slot />
         </main>

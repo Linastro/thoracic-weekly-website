@@ -1,11 +1,13 @@
 ---
-/** 顶部 nav:logo + 标题 + 右侧操作槽。 */
+/** 顶部 nav:logo + 标题 + 右侧操作槽(ThemeToggle + 总数)。 */
 
 interface Props {
   title?: string;
   totalCount?: number;
 }
 const { title = '胸外文献每日监控', totalCount } = Astro.props;
+
+import ThemeToggle from '../islands/ThemeToggle';
 
 const today = new Date().toLocaleDateString('zh-CN', {
   year: 'numeric', month: 'long', day: 'numeric', weekday: 'long'
@@ -18,7 +20,5 @@ const today = new Date().toLocaleDateString('zh-CN', {
     <span>{title}</span>
   </a>
   <div class="topnav-meta">{today}{totalCount !== undefined ? ` · 共 ${totalCount} 篇` : ''}</div>
-  <div class="topnav-actions" id="theme-toggle-slot">
-    <!-- ThemeToggle island 留第 12 步 -->
-  </div>
+  <ThemeToggle client:load />
 </header>
