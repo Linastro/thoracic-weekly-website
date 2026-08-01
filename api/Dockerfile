@@ -1,6 +1,7 @@
 # syntax=docker/dockerfile:1.7
 # Stage 1 — install dependencies with uv (cached layer)
-FROM ghcr.io/astral-sh/uv:0.6.6 AS uv
+# Phase B fix:uv:0.6.6 是 scratch 镜像无 /bin/sh,改用 python3.12-bookworm-slim(自带 shell + uv 0.9.30)
+FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS uv
 ENV UV_LINK_MODE=copy \
     UV_COMPILE_BYTECODE=1 \
     UV_PYTHON_DOWNLOADS=never
@@ -8,9 +9,14 @@ ENV UV_LINK_MODE=copy \
 WORKDIR /build
 COPY pyproject.toml uv.lock* ./
 COPY api/pyproject.toml ./api/pyproject.toml
+# setuptools 需要 api/src 存在才能识别 thoracic 包
+COPY api/src ./api/src
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev --package thoracic-server-api || \
-    uv sync --no-dev --package thoracic-server-api
+    # Phase B 4th fix:阿里云服务器访问 PyPI 慢,uv 默认 30s 超时不够
+    UV_HTTP_TIMEOUT=180 \
+    # --no-editable:把 thoracic 装到 site-packages(.pth 路径错配导致 ModuleNotFoundError)
+    uv sync --frozen --no-dev --no-editable --package thoracic-server-api || \
+    UV_HTTP_TIMEOUT=180 uv sync --no-dev --no-editable --package thoracic-server-api
 
 # Stage 2 — runtime image
 FROM python:3.12-slim AS runtime
@@ -25,6 +31,9 @@ RUN apt-get update \
 
 WORKDIR /app
 COPY --from=uv /build/.venv /app/.venv
+# Phase B fix:uv 0.9.30 venv launcher shebang 写死 /build/.venv/bin/python(构建路径,运行时不存在)
+# 运行时必须用 venv 自己的 Python(/app/.venv/bin/python),才能找到 site-packages
+RUN find /app/.venv/bin -type f -exec sed -i 's|#!/build/.venv/bin/python|#!/app/.venv/bin/python|' {} +
 COPY api ./api
 
 EXPOSE 8080

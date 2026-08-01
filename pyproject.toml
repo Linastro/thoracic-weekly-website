@@ -22,6 +22,9 @@ dependencies = [
 where = ["api/src"]
 include = ["thoracic*"]
 
+[tool.setuptools.package-data]
+thoracic = ["db/*.sql", "db/seed_data/*.json"]
+
 [tool.uv]
 workspace = { members = ["api"] }
 

@@ -1,8 +1,10 @@
-# Container 启动时立即 build 一次(让 web_dist 在容器首次启动就有内容)
-@reboot cd /app/web_src && npm run build && cp -R dist/. /app/web_dist/ >> /var/log/cron.log 2>&1
+# === supercronic crontab ===
+# 注意:supercronic 不支持 && / || 链式命令,每行只能是一个可执行文件(脚本或命令)
+# 注意:supercronic **不支持 @reboot 行**(bad crontab line)
+# 容器启动时 initial build 由 entrypoint.sh 完成(看 Dockerfile CMD)
+# 复杂逻辑放在 /app/cron_jobs/*.sh 脚本里
 
-# Beijing time 8:00 (UTC 0:00) - fetch yesterday's PubMed thoracic literature, then rebuild Astro
-0 0 * * * cd /app && python -m thoracic.pipeline.daily --target $(TZ=Asia/Shanghai date -d 'yesterday' +%Y-%m-%d) >> /var/log/cron.log 2>&1 && cd /app/web_src && npm run build && cp -R dist/. /app/web_dist/ >> /var/log/cron.log 2>&1
-
+# Daily 8:00 Beijing (= UTC 0:00) - fetch yesterday's PubMed thoracic literature, then rebuild Astro
+0 0 * * * /app/cron_jobs/daily.sh
 # Every Monday 10:00 Beijing - cleanup snapshots older than 180 days
-0 2 * * 1 cd /app && python -m thoracic.pipeline.cleanup --older-than 180 >> /var/log/cron.log 2>&1
+0 2 * * 1 /app/cron_jobs/cleanup.sh

@@ -2,6 +2,9 @@
 .env
 .env.local
 
+# Handoff doc — contains server credentials, never commit
+HANDOFF.md
+
 # Data
 data/
 thoracic.db

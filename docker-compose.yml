@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: api/Dockerfile
-    image: thoracic-server:local
+    image: thoracic-server-api:local
     container_name: thoracic-api
     restart: unless-stopped
     env_file: .env
@@ -24,7 +24,7 @@ services:
     build:
       context: .
       dockerfile: cron/Dockerfile
-    image: thoracic-server:local
+    image: thoracic-server-cron:local
     container_name: thoracic-cron
     restart: unless-stopped
     env_file: .env
