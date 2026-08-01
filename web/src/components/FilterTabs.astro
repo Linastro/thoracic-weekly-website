@@ -1,0 +1,52 @@
+---
+/** 顶部双层筛选 chip(静态版,React island 留第 12 步)。 */
+import { DISEASES, TYPES } from '../lib/types';
+
+interface Props {
+  activeDisease?: string;
+  activeType?: string;
+}
+const { activeDisease, activeType } = Astro.props;
+
+const diseaseHref = (slug: string | null) => {
+  const params = new URLSearchParams();
+  if (slug) params.set('disease', slug);
+  if (activeType) params.set('type', activeType);
+  const qs = params.toString();
+  return qs ? `/?${qs}` : '/';
+};
+
+const typeHref = (slug: string | null) => {
+  const params = new URLSearchParams();
+  if (activeDisease) params.set('disease', activeDisease);
+  if (slug) params.set('type', slug);
+  const qs = params.toString();
+  return qs ? `/?${qs}` : '/';
+};
+---
+
+<section class="filter-bar">
+  <div class="filter-row">
+    <span class="filter-label">病种</span>
+    <div class="filter-chips">
+      <a class={`chip ${!activeDisease ? 'active' : ''}`} href={diseaseHref(null)}>全部</a>
+      {DISEASES.map((d) => (
+        <a class={`chip ${activeDisease === d.slug ? 'active' : ''}`} href={diseaseHref(d.slug)}>
+          {d.name_zh}
+        </a>
+      ))}
+    </div>
+  </div>
+
+  <div class="filter-row">
+    <span class="filter-label">类型</span>
+    <div class="filter-chips">
+      <a class={`chip ${!activeType ? 'active' : ''}`} href={typeHref(null)}>全部</a>
+      {TYPES.map((t) => (
+        <a class={`chip ${activeType === t.slug ? 'active' : ''}`} href={typeHref(t.slug)}>
+          {t.name_zh}
+        </a>
+      ))}
+    </div>
+  </div>
+</section>

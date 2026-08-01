@@ -1,0 +1,42 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import TopNav from '../../components/TopNav.astro';
+import Sidebar from '../../components/Sidebar.astro';
+import { DISEASES } from '../../lib/types';
+import { loadAllArticles } from '../../lib/data';
+
+const all = loadAllArticles();
+const stats = DISEASES.map((d) => ({
+  ...d,
+  count: all.filter((a) => a.disease === d.slug).length,
+  latest: all
+    .filter((a) => a.disease === d.slug)
+    .sort((a, b) => b.epdat.localeCompare(a.epdat))
+    .slice(0, 5),
+}));
+---
+
+<BaseLayout title="主题 - 胸外文献每日监控">
+  <Fragment slot="sidebar"><Sidebar /></Fragment>
+  <Fragment slot="topnav-right"><TopNav /></Fragment>
+
+  <h1 class="page-title">主题分类</h1>
+  <p class="page-subtitle">按 5 个病种分组的最新文献。</p>
+
+  <div class="topic-grid">
+    {stats.map((s) => (
+      <a href={`/topics/${s.slug}`} class="topic-card">
+        <h2 class="topic-card-name">{s.name_zh}</h2>
+        <p class="topic-card-count">{s.count} 篇</p>
+        <ul class="topic-card-preview">
+          {s.latest.map((a) => (
+            <li class="topic-card-preview-item">
+              <span class="topic-card-preview-title">{a.title_zh || a.title}</span>
+              <time class="topic-card-preview-date">{a.epdat}</time>
+            </li>
+          ))}
+        </ul>
+      </a>
+    ))}
+  </div>
+</BaseLayout>

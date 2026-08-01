@@ -1,0 +1,24 @@
+---
+/** 顶部 nav:logo + 标题 + 右侧操作槽。 */
+
+interface Props {
+  title?: string;
+  totalCount?: number;
+}
+const { title = '胸外文献每日监控', totalCount } = Astro.props;
+
+const today = new Date().toLocaleDateString('zh-CN', {
+  year: 'numeric', month: 'long', day: 'numeric', weekday: 'long'
+});
+---
+
+<header class="topnav">
+  <a href="/" class="topnav-brand">
+    <img src="/favicon.svg" alt="logo" width="28" height="28" />
+    <span>{title}</span>
+  </a>
+  <div class="topnav-meta">{today}{totalCount !== undefined ? ` · 共 ${totalCount} 篇` : ''}</div>
+  <div class="topnav-actions" id="theme-toggle-slot">
+    <!-- ThemeToggle island 留第 12 步 -->
+  </div>
+</header>

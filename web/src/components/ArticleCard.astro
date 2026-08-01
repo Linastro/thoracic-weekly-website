@@ -1,0 +1,38 @@
+---
+/** 卡片(精简版):来源 + 中英标题 + 时间 + tag。 */
+import type { Article } from '../lib/types';
+import { DISEASES, TYPES } from '../lib/types';
+import JournalBadge from './JournalBadge.astro';
+
+interface Props {
+  article: Article;
+}
+const { article } = Astro.props;
+
+const disease = DISEASES.find((d) => d.slug === article.disease);
+const type = TYPES.find((t) => t.slug === article.type);
+const pubmedUrl = `https://pubmed.ncbi.nlm.nih.gov/${article.pmid}/`;
+
+const showJournal = article.journal_full ?? article.journal;
+---
+
+<article class="article-card">
+  <a href={pubmedUrl} target="_blank" rel="noopener noreferrer" class="article-source">
+    {showJournal}
+  </a>
+
+  <a href={`/article/${article.pmid}`} class="article-title-link">
+    <h3 class="article-title-zh">{article.title_zh || article.title}</h3>
+    {article.title_zh && article.title_zh !== article.title && (
+      <p class="article-title-en">{article.title}</p>
+    )}
+  </a>
+
+  <time class="article-date" datetime={article.epdat}>{article.epdat}</time>
+
+  <div class="article-tags">
+    {type && <span class="tag tag-type">{type.name_zh}</span>}
+    {disease && <span class="tag tag-disease">{disease.name_zh}</span>}
+    <JournalBadge article={article} />
+  </div>
+</article>

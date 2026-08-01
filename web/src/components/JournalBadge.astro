@@ -1,0 +1,22 @@
+---
+/** 期刊指标徽章:IF + Q1 + 新锐分区。 */
+import type { Article } from '../lib/types';
+
+interface Props {
+  article: Pick<Article, 'impact_factor' | 'jcr_quartile' | 'new_talent_quartile' | 'journal_full'>;
+}
+const { article } = Astro.props;
+---
+
+{article.impact_factor !== null && (
+  <span class="tag tag-if">IF {article.impact_factor.toFixed(1)}</span>
+)}
+{article.jcr_quartile && (
+  <span class="tag tag-jcr">{article.jcr_quartile}</span>
+)}
+{article.new_talent_quartile && (
+  <span class="tag tag-nt">新锐{article.new_talent_quartile}</span>
+)}
+{article.journal_full && (
+  <span class="tag tag-journal" title={article.journal_full}>{article.journal_full}</span>
+)}

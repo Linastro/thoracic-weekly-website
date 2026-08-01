@@ -1,0 +1,45 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import TopNav from '../components/TopNav.astro';
+import Sidebar from '../components/Sidebar.astro';
+---
+
+<BaseLayout title="关于 - 胸外文献每日监控">
+  <Fragment slot="sidebar"><Sidebar /></Fragment>
+  <Fragment slot="topnav-right"><TopNav /></Fragment>
+
+  <article class="prose">
+    <h1>关于本项目</h1>
+    <p>胸外科文献每日监控站,从 PubMed 自动抓取每日(北京时间 8 点)新发表的 5 大病种 × 5 类研究类型的胸外科文献,经大语言模型(MiniMax M3)分类与中英翻译后展示。</p>
+
+    <h2>5 大病种</h2>
+    <ul>
+      <li>肺癌</li>
+      <li>食管癌</li>
+      <li>纵隔肿瘤</li>
+      <li>气管疾病</li>
+      <li>气胸·胸外伤·肋骨骨折·胸壁畸形</li>
+    </ul>
+
+    <h2>5 类研究类型</h2>
+    <ul>
+      <li>临床研究</li>
+      <li>AI/ML 研究</li>
+      <li>基础研究</li>
+      <li>综述与 Meta 分析</li>
+      <li>指南与共识</li>
+    </ul>
+
+    <h2>期刊白名单</h2>
+    <p>仅收录 <code>journal_metrics.json</code> 中列出的 114 本高影响力胸外相关期刊。</p>
+
+    <h2>技术栈</h2>
+    <ul>
+      <li>Python 3.12 + FastAPI + SQLite(后端)</li>
+      <li>PubMed E-utilities(数据源)</li>
+      <li>MiniMax M3(LLM 分类与翻译)</li>
+      <li>Astro 4(静态前端)</li>
+      <li>Docker + Nginx(部署)</li>
+    </ul>
+  </article>
+</BaseLayout>

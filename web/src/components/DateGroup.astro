@@ -1,0 +1,24 @@
+---
+/** 日期分组容器。 */
+import type { Article } from '../lib/types';
+import ArticleCard from './ArticleCard.astro';
+
+interface Props {
+  date: string;
+  articles: Article[];
+}
+const { date, articles } = Astro.props;
+
+const dateObj = new Date(date + 'T00:00:00');
+const weekday = ['日', '一', '二', '三', '四', '五', '六'][dateObj.getDay()];
+const formatted = `${dateObj.getMonth() + 1}月${dateObj.getDate()}日 星期${weekday}`;
+---
+
+<section class="date-group">
+  <header class="date-group-header">
+    <h2 class="date-group-title">{formatted} · {articles.length} 篇</h2>
+  </header>
+  <div class="date-group-list">
+    {articles.map((article) => <ArticleCard article={article} />)}
+  </div>
+</section>

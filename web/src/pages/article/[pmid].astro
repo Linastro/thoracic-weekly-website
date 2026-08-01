@@ -1,0 +1,102 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import TopNav from '../../components/TopNav.astro';
+import Sidebar from '../../components/Sidebar.astro';
+import { DISEASES, TYPES } from '../../lib/types';
+import { loadAllArticles, loadArticleByPmid } from '../../lib/data';
+
+export function getStaticPaths() {
+  return loadAllArticles().map((a) => ({ params: { pmid: a.pmid } }));
+}
+
+const { pmid } = Astro.params;
+const article = loadArticleByPmid(pmid!);
+if (!article) {
+  return Astro.redirect('/');
+}
+
+const disease = DISEASES.find((d) => d.slug === article.disease);
+const type = TYPES.find((t) => t.slug === article.type);
+const pubmedUrl = `https://pubmed.ncbi.nlm.nih.gov/${article.pmid}/`;
+const showJournal = article.journal_full ?? article.journal;
+
+// 配对 authors 与 affiliations
+const pairedAuthors = article.authors.map((name, i) => ({
+  name,
+  aff: article.affiliations[i] ?? null,
+}));
+---
+
+<BaseLayout title={article.title_zh || article.title}>
+  <Fragment slot="sidebar"><Sidebar /></Fragment>
+  <Fragment slot="topnav-right"><TopNav /></Fragment>
+
+  <article class="article-detail">
+    <a href="/" class="back-link">← 返回 全部文献</a>
+
+    <header class="article-detail-header">
+      <h1 class="article-detail-title-zh">{article.title_zh || article.title}</h1>
+      {article.title_zh && article.title_zh !== article.title && (
+        <p class="article-detail-title-en">{article.title}</p>
+      )}
+    </header>
+
+    <dl class="article-detail-meta">
+      <dt>期刊</dt>
+      <dd>{showJournal}</dd>
+      <dt>PMID</dt>
+      <dd><a href={pubmedUrl} target="_blank" rel="noopener noreferrer">{article.pmid}</a></dd>
+      <dt>原文</dt>
+      <dd><a href={pubmedUrl} target="_blank" rel="noopener noreferrer">PubMed ↗</a></dd>
+      <dt>发布日期</dt>
+      <dd><time datetime={article.epdat}>{article.epdat}</time></dd>
+    </dl>
+
+    <section class="article-detail-section">
+      <h2>作者</h2>
+      <ul class="author-list">
+        {pairedAuthors.map((a) => (
+          <li class="author-item">
+            <span class="author-name">{a.name}</span>
+            {a.aff && <span class="author-aff">— {a.aff}</span>}
+          </li>
+        ))}
+      </ul>
+    </section>
+
+    {article.affiliations.some((a) => a !== null) && (
+      <section class="article-detail-section">
+        <h2>作者单位</h2>
+        <ul class="aff-list">
+          {Array.from(new Set(article.affiliations.filter((a) => a !== null))).map((aff) => (
+            <li>{aff}</li>
+          ))}
+        </ul>
+      </section>
+    )}
+
+    <section class="article-detail-section">
+      <h2>摘要</h2>
+      <div class="abstract-block">
+        <h3>中文</h3>
+        <p>{article.abstract_zh || article.abstract || '(暂无中文翻译)'}</p>
+      </div>
+      <div class="abstract-block">
+        <h3>English</h3>
+        <p>{article.abstract || '(no abstract)'}</p>
+      </div>
+    </section>
+
+    <section class="article-detail-section">
+      <h2>分类与指标</h2>
+      <dl class="classification-list">
+        {type && (<><dt>研究类型</dt><dd>{type.name_zh}</dd></>)}
+        {disease && (<><dt>病种</dt><dd>{disease.name_zh}</dd></>)}
+        {article.jcr_quartile && (<><dt>JCR 分区</dt><dd>{article.jcr_quartile}</dd></>)}
+        {article.impact_factor !== null && (<><dt>影响因子</dt><dd>{article.impact_factor.toFixed(1)}</dd></>)}
+        {article.new_talent_quartile && (<><dt>新锐分区</dt><dd>{article.new_talent_quartile}</dd></>)}
+        {article.llm_model && (<><dt>分类模型</dt><dd>{article.llm_model}</dd></>)}
+      </dl>
+    </section>
+  </article>
+</BaseLayout>

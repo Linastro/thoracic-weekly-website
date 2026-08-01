@@ -1,12 +1,58 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import TopNav from '../components/TopNav.astro';
+import Sidebar from '../components/Sidebar.astro';
+import FilterTabs from '../components/FilterTabs.astro';
+import DateGroup from '../components/DateGroup.astro';
+import SearchBox from '../components/SearchBox.astro';
+import { loadAllArticles } from '../lib/data';
+import { parseFilter } from '../lib/url';
+import type { Article } from '../lib/types';
+
+const filter = parseFilter(Astro.url.searchParams);
+
+let articles = loadAllArticles();
+if (filter.disease) {
+  articles = articles.filter((a) => a.disease === filter.disease);
+}
+if (filter.type) {
+  articles = articles.filter((a) => a.type === filter.type);
+}
+
+// 按 epdat 倒序
+articles.sort((a, b) => b.epdat.localeCompare(a.epdat));
+
+// 按日期分组
+const byDate = new Map<string, Article[]>();
+for (const a of articles) {
+  const list = byDate.get(a.epdat) ?? [];
+  list.push(a);
+  byDate.set(a.epdat, list);
+}
+const dateGroups = Array.from(byDate.entries()).sort((a, b) => b[0].localeCompare(a[0]));
+
+const totalArticles = loadAllArticles().length;
 ---
+
 <BaseLayout title="胸外文献每日监控">
-  <div class="placeholder-page">
-    <h1>Phase A 第 9 步脚手架完成</h1>
-    <p>等待第 10 步:静态页面 + 第 11 步:静态组件 + 第 12 步:交互 island。</p>
-    <p style="margin-top: 2rem; font-size: 0.875rem;">
-      API 已就绪: <a href="/api/health" target="_blank">/api/health</a>
-    </p>
+  <Fragment slot="sidebar">
+    <Sidebar />
+  </Fragment>
+  <Fragment slot="topnav-right">
+    <TopNav totalCount={totalArticles} />
+  </Fragment>
+
+  <div class="page-toolbar">
+    <SearchBox />
   </div>
+
+  <FilterTabs activeDisease={filter.disease} activeType={filter.type} />
+
+  {dateGroups.length === 0 ? (
+    <div class="empty-state">
+      <p>暂无符合条件的文献。</p>
+    </div>
+  ) : (
+    dateGroups.map(([date, arts]) => <DateGroup date={date} articles={arts} />)
+  )}
 </BaseLayout>

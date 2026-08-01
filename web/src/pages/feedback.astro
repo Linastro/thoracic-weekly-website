@@ -1,0 +1,30 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import TopNav from '../components/TopNav.astro';
+import Sidebar from '../components/Sidebar.astro';
+---
+
+<BaseLayout title="反馈 - 胸外文献每日监控">
+  <Fragment slot="sidebar"><Sidebar /></Fragment>
+  <Fragment slot="topnav-right"><TopNav /></Fragment>
+
+  <article class="prose">
+    <h1>反馈</h1>
+    <p>如发现抓取遗漏、分类错误、翻译不准,或希望增加新功能,请通过以下方式反馈:</p>
+
+    <h2>邮箱</h2>
+    <p><a href="mailto:feedback@example.com">feedback@example.com</a>(占位邮箱,待配置)</p>
+
+    <h2>常见问题</h2>
+    <dl>
+      <dt>为什么我看到的内容比 PubMed 多/少?</dt>
+      <dd>本项目仅收录 114 本期刊白名单内的文献,且只展示 5 大病种与 5 类研究类型。</dd>
+
+      <dt>中英翻译不准确怎么办?</dt>
+      <dd>当前使用 MiniMax M3 翻译,可能存在医学术语翻译偏差。可在原文 PubMed 链接核对。</dd>
+
+      <dt>如何订阅更新?</dt>
+      <dd>RSS 与微信公众号推送功能计划中,即将上线。</dd>
+    </dl>
+  </article>
+</BaseLayout>
