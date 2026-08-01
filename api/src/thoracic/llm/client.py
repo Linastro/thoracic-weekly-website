@@ -109,7 +109,7 @@ class MiniMaxClient:
     async def chat_json(self, messages: list[dict], **kwargs) -> dict:
         """便捷方法:强制 `response_format={"type":"json_object"}`,并返回 message.content 的 dict。
 
-        返回的是 `json.loads(response["choices"][0]["message"]["content"])` 结果。
+        使用 `parse_strict_json_object` 解析(自动剥离 <think>...</think> 块 + 提取首个 {} 平衡块)。
         """
         kwargs.setdefault("response_format", {"type": "json_object"})
         response = await self.chat(messages, **kwargs)
@@ -119,12 +119,14 @@ class MiniMaxClient:
             raise LlmJsonParseError(
                 f"unusual response shape: {response}"
             ) from e
+        # 用 parse_strict_json_object 而非 json.loads:
+        # MiniMax M3 会在 content 前插入 <think>...</think> 推理块,
+        # 直接 json.loads 会抛 DecodeError;parse_strict_json_object 会先剥离再解析。
+        from .json_parse import parse_strict_json_object
         try:
-            return json.loads(content)
-        except json.JSONDecodeError as e:
-            raise LlmJsonParseError(
-                f"content not JSON: {content[:200]}"
-            ) from e
+            return parse_strict_json_object(content)
+        except ValueError as e:
+            raise LlmJsonParseError(f"content not JSON: {content[:200]}") from e
 
 
 # 模块级默认 client(从 settings 读)。无 API key 时不会立即报错,首次 chat 才 raise。
