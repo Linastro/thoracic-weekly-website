@@ -1,0 +1,46 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import TopNav from '../components/TopNav.astro';
+import Sidebar from '../components/Sidebar.astro';
+import { loadJournals } from '../lib/journals';
+
+const journals = loadJournals();
+---
+
+<BaseLayout title="期刊目录 - 胸外文献每日监控">
+  <Fragment slot="sidebar"><Sidebar /></Fragment>
+  <Fragment slot="topnav-right"><TopNav /></Fragment>
+
+  <article class="prose">
+    <h1>期刊目录</h1>
+    <p class="page-subtitle">共 {journals.length} 本期刊,按字母排序。</p>
+
+    <table class="journals-table">
+      <thead>
+        <tr>
+          <th>期刊名称</th>
+          <th>影响因子</th>
+          <th>JCR 分区</th>
+          <th>新锐分区</th>
+        </tr>
+      </thead>
+      <tbody>
+        {journals.map((j) => (
+          <tr>
+            <td>{j.journal}</td>
+            <td>{j.impact_factor?.toFixed(1) ?? '—'}</td>
+            <td>{j.jcr_quartile ?? '—'}</td>
+            <td>{j.new_talent_quartile ?? '—'}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </article>
+</BaseLayout>
+
+<style>
+  .journals-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; margin-top: 1rem; }
+  .journals-table th, .journals-table td { padding: 0.5rem 0.75rem; text-align: left; border-bottom: 1px solid var(--border); }
+  .journals-table th { background: var(--card-bg); font-weight: 600; color: var(--muted); position: sticky; top: 0; }
+  .journals-table tbody tr:hover { background: var(--card-bg); }
+</style>

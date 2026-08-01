@@ -16,7 +16,7 @@ const pubmedUrl = `https://pubmed.ncbi.nlm.nih.gov/${article.pmid}/`;
 const showJournal = article.journal_full ?? article.journal;
 ---
 
-<article class="article-card">
+<article class="article-card" data-disease={article.disease} data-type={article.type}>
   <a href={pubmedUrl} target="_blank" rel="noopener noreferrer" class="article-source">
     {showJournal}
   </a>
@@ -31,8 +31,8 @@ const showJournal = article.journal_full ?? article.journal;
   <time class="article-date" datetime={article.epdat}>{article.epdat}</time>
 
   <div class="article-tags">
-    {type && <span class="tag tag-type">{type.name_zh}</span>}
-    {disease && <span class="tag tag-disease">{disease.name_zh}</span>}
+    {type && <span class="tag tag-type" data-type-name={type.name_zh}>{type.name_zh}</span>}
+    {disease && <span class="tag tag-disease" data-disease-name={disease.name_zh}>{disease.name_zh}</span>}
     <JournalBadge article={article} />
   </div>
 </article>

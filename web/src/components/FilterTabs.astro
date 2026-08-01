@@ -7,34 +7,52 @@
  */
 import { DISEASES, TYPES } from '../lib/types';
 
+interface Props {
+  activeDisease?: string;
+  activeType?: string;
+  showDiseaseRow?: boolean;
+  diseaseHrefBase?: string;
+  typeHrefBase?: string;
+}
+
+const {
+  activeDisease,
+  activeType,
+  showDiseaseRow = true,
+  diseaseHrefBase = '/',
+  typeHrefBase = '/',
+} = Astro.props;
+
 // 全部 chip 不挂任何 slug,清空当前参数
 const buildDiseaseHref = (slug: string | null) => {
   const params = new URLSearchParams();
   if (slug) params.set('disease', slug);
   const qs = params.toString();
-  return qs ? `/?${qs}` : '/';
+  return qs ? `${diseaseHrefBase}?${qs}` : diseaseHrefBase;
 };
 
 const buildTypeHref = (slug: string | null) => {
   const params = new URLSearchParams();
   if (slug) params.set('type', slug);
   const qs = params.toString();
-  return qs ? `/?${qs}` : '/';
+  return qs ? `${typeHrefBase}?${qs}` : typeHrefBase;
 };
 ---
 
 <section class="filter-bar">
-  <div class="filter-row">
-    <span class="filter-label">病种</span>
-    <div class="filter-chips">
-      <a class="chip" href={buildDiseaseHref(null)} data-kind="disease" data-slug="">全部</a>
-      {DISEASES.map((d) => (
-        <a class="chip" href={buildDiseaseHref(d.slug)} data-kind="disease" data-slug={d.slug}>
-          {d.name_zh}
-        </a>
-      ))}
+  {showDiseaseRow && (
+    <div class="filter-row">
+      <span class="filter-label">病种</span>
+      <div class="filter-chips">
+        <a class="chip" href={buildDiseaseHref(null)} data-kind="disease" data-slug="">全部</a>
+        {DISEASES.map((d) => (
+          <a class="chip" href={buildDiseaseHref(d.slug)} data-kind="disease" data-slug={d.slug}>
+            {d.name_zh}
+          </a>
+        ))}
+      </div>
     </div>
-  </div>
+  )}
 
   <div class="filter-row">
     <span class="filter-label">类型</span>

@@ -4,6 +4,8 @@ import TopNav from '../components/TopNav.astro';
 import Sidebar from '../components/Sidebar.astro';
 import FilterTabs from '../components/FilterTabs.astro';
 import { loadAllArticles } from '../lib/data';
+import { DISEASES, TYPES } from '../lib/types';
+import { DISEASES, TYPES } from '../lib/types';
 
 // 静态站无 SSR,URL 参数(Astro.url.searchParams)在构建期被剥离,所以
 // 渲染时拿不到 ?disease=&type=。
@@ -62,8 +64,8 @@ const dateGroups = Array.from(byDate.entries()).sort((a, b) =>
                 </a>
                 <time class="article-date" datetime={article.epdat}>{article.epdat}</time>
                 <div class="article-tags">
-                  <span class="tag tag-type" data-type-name>{article.type}</span>
-                  <span class="tag tag-disease" data-disease-name>{article.disease}</span>
+                  <span class="tag tag-type" data-type-name={article.type}>{TYPES.find((t) => t.slug === article.type)?.name_zh ?? article.type}</span>
+                  <span class="tag tag-disease" data-disease-name={article.disease}>{DISEASES.find((d) => d.slug === article.disease)?.name_zh ?? article.disease}</span>
                   {article.impact_factor !== null && (
                     <span class="tag tag-if">IF {article.impact_factor.toFixed(1)}</span>
                   )}

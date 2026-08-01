@@ -3,6 +3,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 import TopNav from '../../components/TopNav.astro';
 import Sidebar from '../../components/Sidebar.astro';
 import DateGroup from '../../components/DateGroup.astro';
+import FilterTabs from '../../components/FilterTabs.astro';
 import { DISEASES } from '../../lib/types';
 import { loadAllArticles } from '../../lib/data';
 import type { Article } from '../../lib/types';
@@ -27,6 +28,8 @@ for (const a of articles) {
   byDate.set(a.epdat, list);
 }
 const dateGroups = Array.from(byDate.entries()).sort((a, b) => b[0].localeCompare(a[0]));
+
+const typeHrefBase = `/topics/${slug}`;
 ---
 
 <BaseLayout title={`${disease.name_zh} - 胸外文献每日监控`}>
@@ -36,9 +39,55 @@ const dateGroups = Array.from(byDate.entries()).sort((a, b) => b[0].localeCompar
   <h1 class="page-title">{disease.name_zh}</h1>
   <p class="page-subtitle">{articles.length} 篇文献</p>
 
+  <FilterTabs showDiseaseRow={false} typeHrefBase={typeHrefBase} />
+
   {dateGroups.length === 0 ? (
     <div class="empty-state"><p>该主题暂无文献。</p></div>
   ) : (
     dateGroups.map(([date, arts]) => <DateGroup date={date} articles={arts} />)
   )}
 </BaseLayout>
+
+<script is:inline>
+  (function () {
+    const params = new URLSearchParams(window.location.search);
+    const type = params.get('type') || '';
+
+    const cards = Array.from(document.querySelectorAll('.article-card'));
+    let visible = 0;
+    const dateGroups = new Map();
+
+    cards.forEach((card) => {
+      const cType = card.getAttribute('data-type') || '';
+      const show = !type || cType === type;
+      if (show) {
+        card.hidden = false;
+        visible += 1;
+        const dg = card.closest('.date-group');
+        if (dg) {
+          dateGroups.set(dg, (dateGroups.get(dg) || 0) + 1);
+        }
+      } else {
+        card.hidden = true;
+      }
+    });
+
+    document.querySelectorAll('.date-group').forEach((dg) => {
+      const cnt = dateGroups.get(dg) || 0;
+      if (cnt === 0) {
+        dg.hidden = true;
+      } else {
+        const counter = dg.querySelector('.date-count');
+        if (counter) counter.textContent = String(cnt);
+      }
+    });
+
+    document.querySelectorAll('.filter-bar .chip').forEach((chip) => {
+      if (chip.dataset.kind === 'type') {
+        const slug = chip.dataset.slug || '';
+        if (slug === type) chip.classList.add('active');
+        else chip.classList.remove('active');
+      }
+    });
+  })();
+</script>
