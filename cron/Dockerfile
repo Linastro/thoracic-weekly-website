@@ -1,37 +1,13 @@
 # syntax=docker/dockerfile:1.7
-# Stage 1 — install Python dependencies with uv
-# Phase B fix:uv:0.6.6 是 scratch 镜像无 /bin/sh,改用 python3.12-bookworm-slim(自带 shell + uv 0.9.30)
-FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim AS uv
-ENV UV_LINK_MODE=copy \
-    UV_COMPILE_BYTECODE=1 \
-    UV_PYTHON_DOWNLOADS=never
-
-WORKDIR /build
-COPY pyproject.toml uv.lock* ./
-COPY api/pyproject.toml ./api/pyproject.toml
-# setuptools 需要 api/src 存在才能识别 thoracic 包
-COPY api/src ./api/src
-RUN --mount=type=cache,target=/root/.cache/uv \
-    # Phase B 4th fix:阿里云服务器访问 PyPI 慢,uv 默认 30s 超时不够
-    UV_HTTP_TIMEOUT=180 \
-    uv sync --frozen --no-dev --no-editable --package thoracic-server-api || \
-    UV_HTTP_TIMEOUT=180 uv sync --no-dev --no-editable --package thoracic-server-api
-
-# Stage 2 — runtime image
+# cron 容器只负责调度:Astro 构建(Node)+ 触发 api 跑 Python 流水线(curl)。
 # Phase B 2nd fix:用 node:22-bookworm-slim 替代 python:3.12-slim + apt 装 nodejs/npm(避免 OOM)
-# node:22-bookworm-slim 内置 Node.js 22 + npm + python3(debian base)
-# 只需 apt 装 4 个小包(curl/tini/ca-certificates/super-cronic)
+# 只需 apt 装 2 个小包(curl / ca-certificates),supercronic 直接下二进制
 FROM node:22-bookworm-slim AS runtime
-# Phase B 5th fix:不要 tini(与 node:22-bookworm-slim glibc 兼容问题导致 fork exec 失败)
-# entrypoint.sh 末尾 exec supercronic 让 supercronic 直接接管 PID 1
-# tini 可选:作为 zombie reaper,但 supercronic 自己处理 signal,不需要 tini
-ENV PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1 \
-    PATH="/app/.venv/bin:${PATH}" \
-    PYTHONPATH=/app
+# PID 1 由 compose 的 init: true(docker 自带 init)提供,镜像内不装 tini。
+# supercronic 一旦自己成为 PID 1 就启用 reaper,而该 reaper fork exec 失败会让进程 fatal 退出。
+# 本容器不跑 Python:daily.sh 通过 curl 调 api 的 /api/backfill 执行流水线。
 
 RUN apt-get update \
- # Phase B 5th fix:去掉 tini,supercronic 自己当 PID 1(tini fork exec 失败)
  && apt-get install -y --no-install-recommends curl ca-certificates \
  && rm -rf /var/lib/apt/lists/* \
  && curl -fsSL https://github.com/aptible/supercronic/releases/download/v0.2.33/supercronic-linux-amd64 \
@@ -39,11 +15,8 @@ RUN apt-get update \
  && chmod +x /usr/local/bin/supercronic
 
 WORKDIR /app
-COPY --from=uv /build/.venv /app/.venv
-# Phase B fix:uv 0.9.30 venv launcher shebang 写死 /build/.venv/bin/python,运行时不存在
-# 运行时必须用 venv 自己的 Python(/app/.venv/bin/python),才能找到 site-packages
-RUN find /app/.venv/bin -type f -exec sed -i 's|#!/build/.venv/bin/python|#!/app/.venv/bin/python|' {} +
-COPY api ./api
+# journals.ts 从 web_src/src/lib 向上三级解析到 /app/journal_metrics.json
+COPY journal_metrics.json ./journal_metrics.json
 
 # ==== web 源码(供 cron 容器 build Astro 静态站点) ====
 COPY web /app/web_src
@@ -70,8 +43,7 @@ RUN chmod +x /entrypoint.sh
 RUN mkdir -p /var/log
 VOLUME ["/data", "/var/log"]
 
-# Phase B 5th fix:直接让 entrypoint.sh 跑(去掉 tini,supercronic 自己当 PID 1)
-# tini 0.19.0 与 node:22-bookworm-slim 的 glibc 有 fork exec 兼容问题
-# entrypoint.sh 末尾 exec supercronic /etc/crontab,supercronic 接管 PID 1
+# entrypoint.sh 先做首次 Astro build,再 exec 传入的 command。
+# PID 1 归 compose init: true,supercronic 因此不会启用会崩的 reaper。
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["supercronic", "/etc/crontab"]

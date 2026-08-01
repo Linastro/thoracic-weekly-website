@@ -36,6 +36,9 @@ services:
     depends_on:
       api:
         condition: service_healthy
+    # supercronic 作为 PID 1 会启用自带 reaper,而该 reaper fork exec 失败导致进程 fatal 退出。
+    # 交给 docker 自带 init 当 PID 1,supercronic 检测到自己非 PID 1 即关闭 reaping。
+    init: true
     command: ["supercronic", "/etc/crontab"]
 
   web:
@@ -48,7 +51,14 @@ services:
     ports:
       - "8080:80"
     volumes:
-      - web_dist:/usr/share/nginx/html:ro    # 从 named volume 读(ro)
+      # nocopy:禁止 docker 把 nginx 镜像自带的默认欢迎页灌进空的 web_dist volume,
+      # 否则会污染 cron 的构建产物目录。
+      - type: volume
+        source: web_dist
+        target: /usr/share/nginx/html
+        read_only: true
+        volume:
+          nocopy: true
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
 
 volumes:

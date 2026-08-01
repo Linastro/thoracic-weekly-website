@@ -77,6 +77,10 @@ def default_path() -> str:
     当前项目根(非容器)的白名单文件在 `journal_metrics.json`(根目录),
     若 `THORACIC_ROOT` 设置则从 `<THORACIC_ROOT>/references/journal_metrics.json` 读取。
     """
+    # 容器内 site-packages 的向上搜索到不了 /app,用绝对路径直接指定。
+    explicit = os.environ.get("THORACIC_METRICS_PATH")
+    if explicit:
+        return explicit
     env = os.environ.get("THORACIC_ROOT")
     if env:
         return str(Path(env) / "references" / "journal_metrics.json")

@@ -1,6 +1,18 @@
 from __future__ import annotations
 import json
+import logging
+import os
 from pathlib import Path
+
+log = logging.getLogger(__name__)
+
+
+def default_metrics_path() -> Path:
+    """白名单文件路径。容器内 site-packages 的相对定位不可靠,用环境变量覆盖。"""
+    env = os.environ.get("THORACIC_METRICS_PATH")
+    if env:
+        return Path(env)
+    return Path(__file__).resolve().parents[4] / "journal_metrics.json"
 
 
 def load_journal_terms(path: str | None = None) -> list[str]:
@@ -8,8 +20,10 @@ def load_journal_terms(path: str | None = None) -> list[str]:
 
     JSON 结构:`{"metadata": {...}, "journals": [{journal, pubmed_journal_terms, ...}, ...]}`
     """
-    p = Path(path) if path else Path(__file__).resolve().parents[4] / "journal_metrics.json"
+    p = Path(path) if path else default_metrics_path()
     if not p.is_file():
+        # 空白名单会让每日检索静默返回 0 篇,必须留下痕迹。
+        log.warning(f"journal_metrics.json not found at {p}; journal whitelist is empty")
         return []
     data = json.loads(p.read_text(encoding="utf-8"))
     journals = data.get("journals") if isinstance(data, dict) else data

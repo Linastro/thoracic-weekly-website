@@ -15,15 +15,22 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     # Phase B 4th fix:阿里云服务器访问 PyPI 慢,uv 默认 30s 超时不够
     UV_HTTP_TIMEOUT=180 \
     # --no-editable:把 thoracic 装到 site-packages(.pth 路径错配导致 ModuleNotFoundError)
-    uv sync --frozen --no-dev --no-editable --package thoracic-server-api || \
-    UV_HTTP_TIMEOUT=180 uv sync --no-dev --no-editable --package thoracic-server-api
+    # --reinstall-package:版本号不变时 uv 会复用缓存的第一方 wheel,源码改动将静默不生效。
+    # 承载 thoracic 代码的是根项目 thoracic-server,thoracic-server-api 只是 workspace 入口。
+    uv sync --frozen --no-dev --no-editable \
+        --reinstall-package thoracic-server --reinstall-package thoracic-server-api \
+        --package thoracic-server-api || \
+    UV_HTTP_TIMEOUT=180 uv sync --no-dev --no-editable \
+        --reinstall-package thoracic-server --reinstall-package thoracic-server-api \
+        --package thoracic-server-api
 
 # Stage 2 — runtime image
 FROM python:3.12-slim AS runtime
 ENV PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1 \
     PATH="/app/.venv/bin:${PATH}" \
-    PYTHONPATH=/app
+    PYTHONPATH=/app \
+    THORACIC_METRICS_PATH=/app/journal_metrics.json
 
 RUN apt-get update \
  && apt-get install -y --no-install-recommends curl tini ca-certificates \
@@ -35,6 +42,7 @@ COPY --from=uv /build/.venv /app/.venv
 # 运行时必须用 venv 自己的 Python(/app/.venv/bin/python),才能找到 site-packages
 RUN find /app/.venv/bin -type f -exec sed -i 's|#!/build/.venv/bin/python|#!/app/.venv/bin/python|' {} +
 COPY api ./api
+COPY journal_metrics.json ./journal_metrics.json
 
 EXPOSE 8080
 
