@@ -1,0 +1,76 @@
+---
+/**
+ * 基础布局:HTML 骨架 + 暗色脚本(防 FOUC)+ 全局样式引入
+ */
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const { title = '胸外文献每日监控', description = '胸外科学术文献每日监控' } = Astro.props;
+
+import '../styles/tokens.css';
+import '../styles/base.css';
+import '../styles/layout.css';
+import '../styles/components.css';
+---
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="description" content={description} />
+    <title>{title}</title>
+    <!--
+      内联暗色脚本 — 必须在 CSS 加载前执行,防 FOUC。
+      默认跟随系统偏好;用户点击 ThemeToggle 后 localStorage 覆盖。
+    -->
+    <script is:inline>
+      (function () {
+        try {
+          const stored = localStorage.getItem('theme-pref');
+          let theme;
+          if (stored === 'light' || stored === 'dark') {
+            theme = stored;
+          } else {
+            // 'system' 或首次访问:跟随系统
+            theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          }
+          document.documentElement.setAttribute('data-theme', theme);
+        } catch (_) {
+          document.documentElement.setAttribute('data-theme', 'light');
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="app-sidebar">
+        <slot name="sidebar">
+          <!-- 默认占位,留给第 11 步的 Sidebar.astro -->
+          <div class="sidebar">
+            <div class="sidebar-section">
+              <div class="sidebar-title">THORACIC</div>
+            </div>
+          </div>
+        </slot>
+      </aside>
+      <div class="app-main">
+        <header class="topnav">
+          <div class="topnav-brand">
+            <img src="/favicon.svg" alt="logo" width="28" height="28" />
+            <span>{title}</span>
+          </div>
+          <slot name="topnav-right">
+            <div class="topnav-meta">脚手架预览</div>
+          </slot>
+        </header>
+        <main class="app-content">
+          <slot />
+        </main>
+      </div>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,38 @@
+/*
+ * 三栏网格布局:
+ *   ┌──────────┬──────────────────────────┐
+ *   │ Sidebar  │  TopNav + Main Content   │
+ *   └──────────┴──────────────────────────┘
+ */
+
+.app-shell {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  min-height: 100vh;
+}
+
+.app-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.app-content {
+  flex: 1;
+  padding: 1.5rem 2rem;
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+  .app-shell {
+    grid-template-columns: 1fr;
+  }
+  .app-sidebar {
+    display: none; /* 移动端暂简化,后续可加抽屉 */
+  }
+  .app-content {
+    padding: 1rem;
+  }
+}

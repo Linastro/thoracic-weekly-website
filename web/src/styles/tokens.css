@@ -1,0 +1,45 @@
+/*
+ * Thoracic Daily Monitor — Design Tokens
+ *
+ * 默认跟随系统 (`prefers-color-scheme`);通过 [data-theme="light"|"dark"]
+ * 覆盖;CSS Variables 驱动所有组件。
+ */
+
+:root {
+  --bg: #ffffff;
+  --fg: #0f172a;
+  --accent: #0d9488;       /* teal — 主强调色 */
+  --accent-hover: #0f766e;
+  --border: #e5e7eb;
+  --card-bg: #f9fafb;
+  --muted: #6b7280;
+  --link: #1d4ed8;
+  --link-hover: #1e40af;
+  --tag-bg: #ecfeff;
+  --tag-fg: #0e7490;
+  --danger: #dc2626;
+  --success: #16a34a;
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --bg: #0a0e1a;
+  --fg: #e5e7eb;
+  --accent: #2dd4bf;
+  --accent-hover: #5eead4;
+  --border: #1f2937;
+  --card-bg: #111827;
+  --muted: #9ca3af;
+  --link: #60a5fa;
+  --link-hover: #93c5fd;
+  --tag-bg: #164e63;
+  --tag-fg: #67e8f9;
+  --danger: #f87171;
+  --success: #4ade80;
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.4);
+  color-scheme: dark;
+}

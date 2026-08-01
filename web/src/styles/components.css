@@ -1,0 +1,75 @@
+/* 通用组件样式预留。第 11 步会扩展。 */
+
+.topnav {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.topnav-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  color: var(--fg);
+}
+
+.topnav-meta {
+  margin-left: auto;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+.sidebar {
+  border-right: 1px solid var(--border);
+  background: var(--bg);
+  padding: 1.25rem 0;
+}
+
+.sidebar-section {
+  padding: 0 1rem 1rem;
+}
+.sidebar-title {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  margin-bottom: 0.5rem;
+}
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-sm);
+  color: var(--fg);
+  font-size: 0.9375rem;
+}
+.sidebar-link:hover {
+  background: var(--card-bg);
+  text-decoration: none;
+}
+.sidebar-link.active {
+  background: var(--tag-bg);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.placeholder-page {
+  padding: 4rem 2rem;
+  text-align: center;
+  color: var(--muted);
+}
+.placeholder-page h1 {
+  font-size: 1.5rem;
+  color: var(--fg);
+  margin-bottom: 0.5rem;
+}
