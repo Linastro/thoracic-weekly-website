@@ -4,8 +4,9 @@
 interface Props {
   title?: string;
   totalCount?: number;
+  totalAfterFilterId?: string;
 }
-const { title = '胸外文献每日监控', totalCount } = Astro.props;
+const { title = '胸外文献每日监控', totalCount, totalAfterFilterId } = Astro.props;
 
 import ThemeToggle from '../islands/ThemeToggle';
 
@@ -19,6 +20,13 @@ const today = new Date().toLocaleDateString('zh-CN', {
     <img src="/favicon.svg" alt="logo" width="28" height="28" />
     <span>{title}</span>
   </a>
-  <div class="topnav-meta">{today}{totalCount !== undefined ? ` · 共 ${totalCount} 篇` : ''}</div>
+  <div class="topnav-meta">
+    {today}
+    {totalCount !== undefined && (
+      <>
+        <span class="topnav-total"> · 共 <span id={totalAfterFilterId}>{totalCount}</span> 篇</span>
+      </>
+    )}
+  </div>
   <ThemeToggle client:load />
 </header>

@@ -74,10 +74,23 @@ export function loadAllSnapshots(): DailySnapshot[] {
   });
 }
 
-/** 扁平所有 articles(跨日期),按 epdat 倒序。 */
+/** 扁平所有 articles(跨日期),按 epdat 倒序。
+ *
+ * 防御性过滤 `llm_excluded === 0`:即便 snapshot 文件脏(含陈旧 exclude 或跨日重复),
+ * 也不让被 LLM 排除的文章漏到前端。第 13 步 snapshot 重建后此过滤为空集,但保留作为
+ * 防御层。
+ */
 export function loadAllArticles(): Article[] {
   const snaps = loadAllSnapshots();
-  return snaps.flatMap((s) => s.articles);
+  const seen = new Set<string>();
+  const out: Article[] = [];
+  for (const a of snaps.flatMap((s) => s.articles)) {
+    if (a.llm_excluded !== 0) continue;
+    if (seen.has(a.pmid)) continue;
+    seen.add(a.pmid);
+    out.push(a);
+  }
+  return out;
 }
 
 /** 加载单个 PMID 的 article(从 snapshot 找)。 */

@@ -3,27 +3,176 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import TopNav from '../components/TopNav.astro';
 import Sidebar from '../components/Sidebar.astro';
 import FilterTabs from '../components/FilterTabs.astro';
-import SearchBox from '../components/SearchBox.astro';
 import { loadAllArticles } from '../lib/data';
-import { parseFilter } from '../lib/url';
 
-const filter = parseFilter(Astro.url.searchParams);
-
-// 客户端 island 需要完整 articles 数组(由 React 在浏览器端过滤)
+// 静态站无 SSR,URL 参数(Astro.url.searchParams)在构建期被剥离,所以
+// 渲染时拿不到 ?disease=&type=。
+// 策略:SSR 渲染完整文章列表,客户端按 URL 参数做 DOM 过滤(见页面底部 inline script)。
+// 防御性过滤 llm_excluded(data.ts 内部已过滤一次,这里是双保险)。
 const articles = loadAllArticles();
 
-const totalArticles = articles.length;
+// 按 epdat 倒序,同天内 fetched_at 倒序由 snapshot writer 保证。
+articles.sort((a, b) => b.epdat.localeCompare(a.epdat));
+
+// 按 epdat 分组
+const byDate = new Map<typeof articles[number]['epdat'], typeof articles>();
+for (const a of articles) {
+  const list = byDate.get(a.epdat) ?? [];
+  list.push(a);
+  byDate.set(a.epdat, list);
+}
+const dateGroups = Array.from(byDate.entries()).sort((a, b) =>
+  b[0].localeCompare(a[0]),
+);
 ---
 
 <BaseLayout title="胸外文献每日监控">
-  <Fragment slot="sidebar">
-    <Sidebar />
-  </Fragment>
-  <Fragment slot="topnav-right">
-    <TopNav totalCount={totalArticles} />
-  </Fragment>
+  <Fragment slot="sidebar"><Sidebar /></Fragment>
+  <Fragment slot="topnav-right"><TopNav totalCount={articles.length} totalAfterFilterId="filter-topnav-count" /></Fragment>
 
-  <FilterTabs activeDisease={filter.disease} activeType={filter.type} />
+  <FilterTabs />
 
-  <SearchBox articles={articles} disease={filter.disease} type={filter.type} />
+  <div id="filter-empty" class="empty-state" hidden><p>暂无符合条件的文献。</p></div>
+
+  <div id="filter-results" data-disease="" data-type="">
+    {dateGroups.length === 0 ? (
+      <div class="empty-state"><p>暂无符合条件的文献。</p></div>
+    ) : (
+      dateGroups.map(([date, arts]) => (
+        <section class="date-group" data-date={date}>
+          <header class="date-group-header">
+            <h2 class="date-group-title">{arts.length > 0 ? '' : ''}{date} · <span class="date-count">{arts.length}</span> 篇</h2>
+          </header>
+          <div class="date-group-list">
+            {arts.map((article) => (
+              <article
+                class="article-card"
+                data-pmid={article.pmid}
+                data-disease={article.disease}
+                data-type={article.type}
+              >
+                <a href={`https://pubmed.ncbi.nlm.nih.gov/${article.pmid}/`} target="_blank" rel="noopener noreferrer" class="article-source">
+                  {article.journal_full ?? article.journal}
+                </a>
+                <a href={`/article/${article.pmid}`} class="article-title-link">
+                  <h3 class="article-title-zh">{article.title_zh || article.title}</h3>
+                  {article.title_zh && article.title_zh !== article.title && (
+                    <p class="article-title-en">{article.title}</p>
+                  )}
+                </a>
+                <time class="article-date" datetime={article.epdat}>{article.epdat}</time>
+                <div class="article-tags">
+                  <span class="tag tag-type" data-type-name>{article.type}</span>
+                  <span class="tag tag-disease" data-disease-name>{article.disease}</span>
+                  {article.impact_factor !== null && (
+                    <span class="tag tag-if">IF {article.impact_factor.toFixed(1)}</span>
+                  )}
+                  {article.jcr_quartile && (
+                    <span class="tag tag-jcr">{article.jcr_quartile}</span>
+                  )}
+                  {article.new_talent_quartile && (
+                    <span class="tag tag-nt">新锐{article.new_talent_quartile}</span>
+                  )}
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      ))
+    )}
+  </div>
 </BaseLayout>
+
+<script is:inline>
+  /**
+   * 客户端 filter chips(纯 vanilla DOM,无 React island):
+   * - 读取 URL searchParams ?disease=&type=
+   * - 隐藏不匹配 article-card;同时折叠空 date-group(全部被隐藏时隐藏整个 section)
+   * - 更新 FilterTabs 的 active class(由 server 渲染占位,客户端覆盖)
+   * - 更新 TopNav 文案 "共 N 篇"
+   *
+   * 注意:这是 Phase A step 13 的"5 个修复"期间临时方案。
+   * 长期方案:若后续接 SSR adapter(把 index.astro 改为 prerender=false),
+   * 可删除此 script,改回 SSR 过滤。
+   */
+  (function () {
+    const params = new URLSearchParams(window.location.search);
+    const disease = params.get('disease') || '';
+    const type = params.get('type') || '';
+
+    const cards = Array.from(document.querySelectorAll('.article-card'));
+    let visible = 0;
+
+    // 记录每个 date-group 内可见数量,用以隐藏空 section
+    const dateGroups = new Map();
+    cards.forEach((card) => {
+      const cDisease = card.getAttribute('data-disease') || '';
+      const cType = card.getAttribute('data-type') || '';
+      const diseaseMatch = !disease || cDisease === disease;
+      const typeMatch = !type || cType === type;
+      const show = diseaseMatch && typeMatch;
+      if (show) {
+        card.hidden = false;
+        visible += 1;
+        const dg = card.closest('.date-group');
+        if (dg) {
+          dateGroups.set(dg, (dateGroups.get(dg) || 0) + 1);
+        }
+      } else {
+        card.hidden = true;
+      }
+    });
+
+    // 隐藏空 date-group,更新可见数
+    document.querySelectorAll('.date-group').forEach((dg) => {
+      const cnt = dateGroups.get(dg) || 0;
+      if (cnt === 0) {
+        dg.hidden = true;
+      } else {
+        const counter = dg.querySelector('.date-count');
+        if (counter) counter.textContent = String(cnt);
+      }
+    });
+
+    // 更新 active chip & 全部 chip 的 href(保留另一个参数 + 清掉自己)
+    const chips = document.querySelectorAll('.filter-bar .chip');
+    chips.forEach((chip) => {
+      const href = chip.getAttribute('href') || '/';
+      const u = new URL(href, window.location.origin);
+      if (chip.dataset.kind === 'disease') {
+        const slug = chip.dataset.slug || '';
+        if (slug === disease) chip.classList.add('active');
+        else chip.classList.remove('active');
+        // 同步 type
+        if (type) u.searchParams.set('type', type);
+        else u.searchParams.delete('type');
+      } else if (chip.dataset.kind === 'type') {
+        const slug = chip.dataset.slug || '';
+        if (slug === type) chip.classList.add('active');
+        else chip.classList.remove('active');
+        if (disease) u.searchParams.set('disease', disease);
+        else u.searchParams.delete('disease');
+      } else {
+        // 全部 — 不带当前 kind 参数
+        if (chip.dataset.kind === 'all-disease') {
+          u.searchParams.delete('disease');
+          if (type) u.searchParams.set('type', type);
+        } else if (chip.dataset.kind === 'all-type') {
+          u.searchParams.delete('type');
+          if (disease) u.searchParams.set('disease', disease);
+        }
+      }
+      chip.setAttribute('href', u.pathname + (u.search || ''));
+    });
+
+    // 更新"共 N 篇"和 empty-state
+    const topnavSpan = document.getElementById('filter-topnav-count');
+    if (topnavSpan) topnavSpan.textContent = String(visible);
+    const empty = document.getElementById('filter-empty');
+    const results = document.getElementById('filter-results');
+    if (visible === 0) {
+      if (empty) empty.hidden = false;
+      if (results) results.hidden = true;
+    }
+  })();
+</script>

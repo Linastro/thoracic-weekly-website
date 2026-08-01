@@ -40,7 +40,7 @@ export const DISEASES = [
   { slug: 'esophageal', name_zh: '食管癌' },
   { slug: 'mediastinal', name_zh: '纵隔肿瘤' },
   { slug: 'tracheal', name_zh: '气管疾病' },
-  { slug: 'chest_wall_injury', name_zh: '气胸·胸外伤' },
+  { slug: 'chest_wall_injury', name_zh: '气胸·外伤·胸壁' },
 ] as const;
 
 /** 类型常量。 */

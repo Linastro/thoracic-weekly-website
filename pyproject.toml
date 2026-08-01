@@ -24,3 +24,6 @@ include = ["thoracic*"]
 
 [tool.uv]
 workspace = { members = ["api"] }
+
+[project.scripts]
+thoracic-rewrite-snapshots = "thoracic.scripts.rewrite_snapshots:main"
