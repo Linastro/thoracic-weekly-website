@@ -12,6 +12,13 @@ export default defineConfig({
   vite: {
     server: {
       watch: { usePolling: true },
+      proxy: {
+        // 客户端 fetch('/api/*') → 转发到后端 8080
+        '/api': {
+          target: 'http://localhost:8080',
+          changeOrigin: true,
+        },
+      },
     },
   },
 });
