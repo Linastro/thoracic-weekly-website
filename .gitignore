@@ -34,6 +34,10 @@ web/node_modules/
 .vscode/
 .idea/
 .DS_Store
+.qoder/
+
+# 一次性运维脚本(不属于产品代码)
+.scratch/
 
 # Logs
 *.log
