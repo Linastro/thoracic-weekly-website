@@ -32,6 +32,30 @@
 .sidebar-section {
   padding: 0 1rem 1rem;
 }
+.sidebar-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.625rem;
+}
+.sidebar-brand-logo {
+  width: 64px;
+  height: auto;
+}
+.sidebar-brand-wordmark {
+  width: 100%;
+  max-width: 172px;
+  height: auto;
+}
+.sidebar-brand-wordmark[data-variant='dark'] {
+  display: none;
+}
+:root[data-theme='dark'] .sidebar-brand-wordmark[data-variant='light'] {
+  display: none;
+}
+:root[data-theme='dark'] .sidebar-brand-wordmark[data-variant='dark'] {
+  display: block;
+}
 .sidebar-title {
   font-size: 0.75rem;
   text-transform: uppercase;
