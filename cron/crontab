@@ -4,7 +4,10 @@
 # 容器启动时 initial build 由 entrypoint.sh 完成(看 Dockerfile CMD)
 # 复杂逻辑放在 /app/cron_jobs/*.sh 脚本里
 
-# Daily 8:00 Beijing (= UTC 0:00) - fetch yesterday's PubMed thoracic literature, then rebuild Astro
-0 0 * * * /app/cron_jobs/daily.sh
-# Every Monday 10:00 Beijing - cleanup snapshots older than 180 days
-0 2 * * 1 /app/cron_jobs/cleanup.sh
+# 注意:compose 给本容器设了 TZ=Asia/Shanghai,supercronic 按**北京时间**解释下面的字段。
+# 曾经这里写成 `0 0 * * *` 并注释"= UTC 0:00",实际变成每天北京 0:00 触发,与预期差 8 小时。
+
+# 每天北京 8:00 - 抓前一天的 PubMed 胸外文献,然后重建 Astro
+0 8 * * * /app/cron_jobs/daily.sh
+# 每周一北京 10:00 - 清理 180 天前的 snapshot
+0 10 * * 1 /app/cron_jobs/cleanup.sh
