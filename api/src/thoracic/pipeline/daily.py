@@ -198,8 +198,17 @@ async def run_daily(target_date: date, *, dry_run: bool = False) -> dict[str, An
         })
 
         # ====== Step 6: 写 JSON snapshot ======
-        log.info(f"[daily {target_date}] step 6: write JSON snapshot")
-        write_daily_snapshot(target_date, article_records)
+        # 按 epdat 从库里重建,而不是只写本次抓到的记录。两个原因:
+        # 1) write_daily_snapshot 是整文件覆盖 —— 重跑历史日期会抹掉该日已有的文章,
+        #    而前端只读 snapshot JSON,被抹掉的文章在站点上就彻底消失了;
+        # 2) [epdat] 检索命中的文章,其 XML 里的 epdat 可能落在别的日期,
+        #    要连同那些日期一起重建,否则会散落在错误的日期桶里。
+        affected = {target_date.isoformat()}
+        affected.update(r["epdat"] for r in article_records if r.get("epdat"))
+        log.info(f"[daily {target_date}] step 6: rebuild snapshots {sorted(affected)}")
+        for day in sorted(affected):
+            rows = await repo.list_articles_for_snapshot(conn, day)
+            write_daily_snapshot(date.fromisoformat(day), rows)
 
         # ====== Step 7: run_log ======
         log.info(f"[daily {target_date}] step 7: run_log")

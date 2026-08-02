@@ -217,6 +217,20 @@ async def list_articles_by_date(
     return [_deserialize_article(row_to_dict(row)) for row in rows]
 
 
+async def list_articles_for_snapshot(
+    conn: aiosqlite.Connection, date: str
+) -> list[dict[str, Any]]:
+    """取某 epdat 的全部已发布文献,不分页 —— 供重建 snapshot JSON 用。"""
+    cursor = await conn.execute(
+        "SELECT * FROM articles WHERE llm_excluded = 0 AND epdat = ? "
+        "ORDER BY fetched_at, pmid",
+        (date,),
+    )
+    rows = await cursor.fetchall()
+    await cursor.close()
+    return [_deserialize_article(row_to_dict(row)) for row in rows]
+
+
 async def list_articles_search(
     conn: aiosqlite.Connection, query: str, limit: int = 50
 ) -> list[dict[str, Any]]:
