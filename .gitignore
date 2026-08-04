@@ -3,7 +3,8 @@
 .env.local
 
 # Handoff doc — contains server credentials, never commit
-HANDOFF.md
+# 通配而非字面名:macOS 复制会生成 "HANDOFF 2.md" 这类副本,同样含服务器 IP
+HANDOFF*.md
 
 # Data
 data/
