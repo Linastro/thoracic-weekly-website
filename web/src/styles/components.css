@@ -38,10 +38,6 @@
   align-items: center;
   gap: 0.625rem;
 }
-.sidebar-brand-logo {
-  width: 64px;
-  height: auto;
-}
 .sidebar-brand-wordmark {
   width: 100%;
   max-width: 172px;

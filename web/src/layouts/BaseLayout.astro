@@ -50,11 +50,7 @@ import '../styles/components.css';
       <aside class="app-sidebar">
         <slot name="sidebar">
           <!-- 默认占位,留给调用方注入 Sidebar.astro -->
-          <div class="sidebar">
-            <div class="sidebar-section sidebar-brand">
-              <img class="sidebar-brand-logo" src="/brand-logo.png" alt="北京大学第三医院胸外科" width="160" height="157" />
-            </div>
-          </div>
+          <div class="sidebar"></div>
         </slot>
       </aside>
       <div class="app-main">
