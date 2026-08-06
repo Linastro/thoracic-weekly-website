@@ -23,6 +23,26 @@
   color: var(--muted);
 }
 
+/* 移动端汉堡按钮:默认隐藏,<768px 显示(见 layout.css 抽屉) */
+.topnav-menu-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--fg);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.topnav-menu-btn:hover {
+  background: var(--card-bg);
+}
+
 .sidebar {
   border-right: 1px solid var(--border);
   background: var(--bg);
@@ -421,6 +441,7 @@
 
 /* Mobile */
 @media (max-width: 768px) {
+  .topnav-menu-btn { display: flex; } /* 覆盖 base 的 display:none(components.css 后于 layout.css 加载) */
   .article-title-zh { font-size: 1rem; }
   .article-detail-title-zh { font-size: 1.375rem; }
   .filter-row { gap: 0.5rem; }

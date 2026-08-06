@@ -16,6 +16,13 @@ const today = new Date().toLocaleDateString('zh-CN', {
 ---
 
 <header class="topnav">
+  <button
+    type="button"
+    class="topnav-menu-btn"
+    aria-label="打开菜单"
+    aria-expanded="false"
+    aria-controls="app-sidebar"
+  >☰</button>
   <a href="/" class="topnav-brand">
     <img src="/favicon.svg" alt="logo" width="28" height="28" />
     <span>{title}</span>

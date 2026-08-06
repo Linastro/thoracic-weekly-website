@@ -47,12 +47,14 @@ import '../styles/components.css';
   </head>
   <body>
     <div class="app-shell">
-      <aside class="app-sidebar">
+      <aside class="app-sidebar" id="app-sidebar">
         <slot name="sidebar">
           <!-- 默认占位,留给调用方注入 Sidebar.astro -->
           <div class="sidebar"></div>
         </slot>
       </aside>
+      <!-- 移动端抽屉遮罩:点它关闭侧边栏(桌面端始终隐藏) -->
+      <div class="app-sidebar-mask" aria-hidden="true"></div>
       <div class="app-main">
         <slot name="topnav-right">
           <!-- 默认占位,留待调用方注入 TopNav.astro -->
@@ -69,4 +71,34 @@ import '../styles/components.css';
       </div>
     </div>
   </body>
+  <!-- 移动端抽屉开关:汉堡按钮 + 遮罩 + 链接点击 / Esc 关闭 -->
+  <script is:inline>
+    (function () {
+      var btn = document.querySelector('.topnav-menu-btn');
+      var shell = document.querySelector('.app-shell');
+      var sidebar = document.getElementById('app-sidebar');
+      var mask = document.querySelector('.app-sidebar-mask');
+      if (!btn || !shell || !sidebar || !mask) return;
+      function open() {
+        shell.classList.add('sidebar-open');
+        btn.setAttribute('aria-expanded', 'true');
+        btn.setAttribute('aria-label', '关闭菜单');
+      }
+      function close() {
+        shell.classList.remove('sidebar-open');
+        btn.setAttribute('aria-expanded', 'false');
+        btn.setAttribute('aria-label', '打开菜单');
+      }
+      btn.addEventListener('click', function () {
+        shell.classList.contains('sidebar-open') ? close() : open();
+      });
+      mask.addEventListener('click', close);
+      sidebar.addEventListener('click', function (e) {
+        if (e.target.closest('a')) close();
+      });
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') close();
+      });
+    })();
+  </script>
 </html>

@@ -25,12 +25,40 @@
   margin: 0 auto;
 }
 
+/* 移动端抽屉遮罩:桌面端始终隐藏 */
+.app-sidebar-mask {
+  display: none;
+}
+
 @media (max-width: 768px) {
   .app-shell {
     grid-template-columns: 1fr;
   }
+  .topnav-menu-btn {
+    display: flex; /* 手机端显示汉堡按钮 */
+  }
+  /* 侧边栏变为左侧滑出抽屉 */
   .app-sidebar {
-    display: none; /* 移动端暂简化,后续可加抽屉 */
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 240px;
+    z-index: 60;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    box-shadow: 2px 0 12px rgba(0, 0, 0, 0.15);
+    overflow-y: auto;
+  }
+  .app-shell.sidebar-open .app-sidebar {
+    transform: translateX(0);
+  }
+  .app-shell.sidebar-open .app-sidebar-mask {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 55;
+    background: rgba(0, 0, 0, 0.4);
   }
   .app-content {
     padding: 1rem;
