@@ -95,7 +95,6 @@ const pairedAuthors = article.authors.map((name, i) => ({
         {article.jcr_quartile && (<><dt>JCR 分区</dt><dd>{article.jcr_quartile}</dd></>)}
         {article.impact_factor !== null && (<><dt>影响因子</dt><dd>{article.impact_factor.toFixed(1)}</dd></>)}
         {article.new_talent_quartile && (<><dt>新锐分区</dt><dd>{article.new_talent_quartile}</dd></>)}
-        {article.llm_model && (<><dt>分类模型</dt><dd>{article.llm_model}</dd></>)}
       </dl>
     </section>
   </article>

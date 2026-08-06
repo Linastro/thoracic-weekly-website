@@ -48,7 +48,7 @@ function mockSnapshots(): DailySnapshot[] {
           jcr_quartile: 'Q1',
           new_talent_quartile: '1区',
           matched_jcr: 'The Lancet',
-          llm_model: 'MiniMax-M3',
+          llm_model: '',
           llm_excluded: 0,
           llm_needs_review: 0,
         },
