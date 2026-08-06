@@ -41,6 +41,8 @@ web/node_modules/
 .scratch/
 
 # 品牌源图(仅本机;web/public/ 下是 sips 缩放版,已 commit)
+/logo.png
+/thoracic-weekly-logo-*.png
 /linastro-logo-*.png
 
 # 服务器数据备份(勿提交)
