@@ -75,7 +75,7 @@
 /* 个人 logo(字标下方,浅/深两版,尺寸小于字标) */
 .sidebar-brand-personal {
   width: 100%;
-  max-width: 120px;
+  max-width: 180px;
   height: auto;
   opacity: 0.92;
 }
