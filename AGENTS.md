@@ -2,7 +2,7 @@
 
 This file provides guidance to the AI agent when working with code in this repository.
 
-PubMed 胸外文献每日监控站:PubMed 抓取 → MiniMax LLM 分类翻译 → SQLite → snapshot JSON → Astro 静态站。三容器(api / cron / web)。
+PubMed 胸外文献每日监控站:PubMed 抓取 → LLM(当前 DeepSeek)分类翻译 → SQLite → snapshot JSON → Astro 静态站。三容器(api / cron / web)。检索按 `[edat]`(PubMed 入库日),每日北京 14:00 跑。
 
 ## 语言约定
 
@@ -25,21 +25,30 @@ cd web && npm run check    # astro check(唯一的类型检查)
 
 ## 部署(非常规,容易出错)
 
-服务器 `~/thoracic-server` **不是 git 仓库**,靠 `scp` 同步文件。
+服务器 `~/thoracic-server` **不是 git 仓库**,靠 `scp` 同步文件。**web 源码、cron 脚本、crontab 都已 bind mount**(2026-08-06 起,见 docker-compose.yml),不再烤进镜像。
 
-`web/`、`cron/crontab`、`cron/cron_jobs/` 都**烤进 cron 镜像**(`COPY`),不是 bind mount。改这些之后:
+### 各层改动方式
+
+| 改动对象 | 方式 |
+|---|---|
+| **web 源码**(`web/src`、`web/public` 等) | bind mount `./web:/app/web_src`。scp 到 `~/thoracic-server/web/` → 本机构建前端 → 上传产物(见下)。**无需重建镜像** |
+| **cron 脚本/定时**(`cron/cron_jobs`、`cron/crontab`) | bind mount(`./cron/cron_jobs:/app/cron_jobs`、`./cron/crontab:/etc/crontab`)。scp 即可(注意 `chmod +x`);改 crontab 后需 `docker compose restart cron` 让 supercronic 重读 |
+| **api Python 代码**(`api/src`) | 包装在镜像 site-packages,**必须 `docker compose build api` + `up -d --force-recreate api`**,`docker compose cp` 无效 |
+| `nginx.conf` | 唯一"改它只需 `restart web`"的常驻 bind mount |
+| `docker-compose.yml` | scp 后 `docker compose up -d --force-recreate`(不重建镜像,秒级) |
+
+**前端发布(不在服务器上 build —— 1.6G 机器上 Astro build 会 OOM 卡死整机,已踩多次坑)**:
 
 ```bash
-scp <改动文件> root@<host>:~/thoracic-server/<同路径>
-ssh root@<host> 'cd ~/thoracic-server && docker compose build cron && docker compose up -d cron'
-# 前端还需显式重建产物到 web_dist volume:
-ssh root@<host> 'cd ~/thoracic-server && docker compose exec -T cron sh -c \
-  "cd /app/web_src && npm run build && cp -R dist/. /app/web_dist/"'
+# 本机(Mac)构建:先确保 /tmp/thoracic-data/snapshots 有最新 snapshot(见"只重建前端")
+cd web && npm run build && touch dist/.astro_build_ok
+# 上传并灌进 web_dist 卷
+scp -r web/dist root@<host>:/tmp/webdist
+ssh root@<host> 'docker run --rm -v thoracic-server_web_dist:/app/web_dist -v /tmp/webdist:/dist:ro nginx:1.27-alpine sh -c "rm -rf /app/web_dist/* && cp -R /dist/. /app/web_dist/"'
 ```
 
-漏掉 `build cron` 会出现"文件传上去了但线上没变"。`docker compose cp`/`exec` 的改动只在容器可写层,`up -d --force-recreate` 即丢失。
-
-`nginx.conf` 是唯一的 bind mount,改它只需 `restart web`。
+> **绝不在服务器上跑 `docker compose build cron`**:npm install 与 api/web 抢内存 → 整机 swap 抖动 30+ 分钟、SSH 失联(2026-08-06 当天踩 3 次)。api 构建是 uv sync(非 npm),相对安全。
+> **`docker compose cp` 进容器的改动只在可写层**,`up -d --force-recreate` 即丢失;bind mount 的改动则持久。
 
 ## 不能动的配置
 
@@ -48,8 +57,9 @@ ssh root@<host> 'cd ~/thoracic-server && docker compose exec -T cron sh -c \
 | `docker-compose.yml` cron `init: true` | supercronic 一旦是 PID 1 就启用会崩的 reaper。别删,也别往镜像装 tini |
 | `web_dist` volume `nocopy: true` | 否则 nginx 默认欢迎页被灌进产物目录 |
 | `nginx.conf` `absolute_redirect off` | 否则目录补斜杠的 301 会按容器内 80 端口拼 origin,丢掉宿主映射端口 |
-| `cron/crontab` | 容器 `TZ=Asia/Shanghai`,supercronic 按**北京时间**解释字段,不要按 UTC 换算 |
+| `cron/crontab` | 容器 `TZ=Asia/Shanghai`,supercronic 按**北京时间**解释字段,不要按 UTC 换算。**已 bind mount**,改后 `restart cron` 即生效 |
 | api 环境变量 `THORACIC_METRICS_PATH` | 容器内包在 site-packages,相对路径找不到 `journal_metrics.json` |
+| 服务器级配置(非 compose) | **`/etc/docker/daemon.json` 的 registry-mirrors(daocloud/1ms/proxy)与 2G swap(`/swapfile`+`/swapfile2`)在系统重置后会丢**,必须重建(见 HANDOFF §6.12) |
 
 ## 数据流陷阱
 
