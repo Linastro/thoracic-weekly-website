@@ -77,3 +77,4 @@ ssh root@<host> 'docker run --rm -v thoracic-server_web_dist:/app/web_dist -v /t
 - `HANDOFF.md` 已 gitignore,含服务器信息与完整踩坑记录 —— **接手前先读,永远不要 commit**。
 - 一次性运维脚本放 `.scratch/`(已 gitignore),不要混进产品代码。
 - 嵌套 ssh + `docker exec` + python 的引号极易出错(HTML 实体会漏进 SQL)。写成真实 `.py` 文件再 `scp` + `docker compose cp`,不要堆行内引号。
+- 品牌素材:`web/public/*.png`(brand-wordmark / linastro-logo)是仓库根目录原图(未纳入 git,只在本机)的 `sips` 缩放版且已 commit。改品牌视觉需用户重新提供原图;改图后 `Sidebar.astro` 的 img `width/height` 要跟新比例同步(light/dark 比例可能不一致)。
