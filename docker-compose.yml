@@ -33,6 +33,10 @@ services:
     volumes:
       - thoracic-data:/data
       - web_dist:/app/web_dist     # cron build 输出 → web 容器读
+      # web 源码 bind mount:改前端免重建 cron 镜像(1.6G 机器上重建会卡死)。
+      # 依赖宿主机 ~/thoracic-server/web/node_modules 存在(从镜像拷一次即可);
+      # 容器内 npm run build 读 /data/snapshots(thoracic-data 卷),不需要 web/data 软链。
+      - ./web:/app/web_src
     depends_on:
       api:
         condition: service_healthy
