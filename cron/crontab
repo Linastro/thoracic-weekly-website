@@ -7,7 +7,8 @@
 # 注意:compose 给本容器设了 TZ=Asia/Shanghai,supercronic 按**北京时间**解释下面的字段。
 # 曾经这里写成 `0 0 * * *` 并注释"= UTC 0:00",实际变成每天北京 0:00 触发,与预期差 8 小时。
 
-# 每天北京 8:00 - 抓前一天的 PubMed 胸外文献,然后重建 Astro
-0 8 * * * /app/cron_jobs/daily.sh
+# 每天北京 14:00 - 抓前一个完整入库日([edat])的 PubMed 胸外文献,然后重建 Astro
+# 14:00 = 美东凌晨,入库日翻页(北京 12:00 夏/13:00 冬)后 1-2 小时,确保昨天入库日已封口
+0 14 * * * /app/cron_jobs/daily.sh
 # 每周一北京 10:00 - 清理 180 天前的 snapshot
 0 10 * * 1 /app/cron_jobs/cleanup.sh

@@ -56,7 +56,7 @@ ssh root@<host> 'cd ~/thoracic-server && docker compose exec -T cron sh -c \
 - **前端只读 snapshot JSON**(`web/src/lib/data.ts`),不调 API,并按文章自身的 `epdat` 字段分组 —— 不是按文件名的日期。
 - `write_daily_snapshot` 是**整文件覆盖**。任何重跑历史日期的代码都必须按 `epdat` 从 DB 重建(见 `pipeline/daily.py` step 6),否则会把该日已有文章从站点上抹掉。
 - `run_backfill` 默认 `concurrency=3`,但每个 `run_daily` 各持独立 SQLite 连接。多日回填时若两天命中同一个 `epdat`,会同时重建同一个 JSON 且看不到对方未提交的行 → **多日调用一律传 `concurrency=1`**。
-- PubMed `[epdat]` 检索命中的文章,其 XML 里的 `epdat` 可能是别的日期;同一天不同时刻重跑返回的 PMID 也不同(索引陆续生成),所以 `daily.sh` 回看两天。
+- 检索用 **`[edat]`**(PubMed 入库日):某入库日封口后永不再变,单日检索即完整,无需回看两天。`daily.sh` 在北京 14:00(= 美东凌晨,入库日翻页后)跑,`TARGET=$(TZ=America/New_York date -d yesterday)` = 前一个完整入库日。检索窗口与存储字段 `epdat`(同为入库日)一致。
 - `articles` 表用 `llm_excluded`(0/1),**没有 `status` 列**。被排除的文章进 `excluded_records` 表,不进 `articles`。
 - `daily_snapshots.article_count` 是**单次运行**统计,与 snapshot 文件篇数本就不一致,前端不用它。
 - cron 容器**没有 Python**,`daily.sh` 通过 `curl` 调 `/api/backfill`(内部即 `run_daily`)。

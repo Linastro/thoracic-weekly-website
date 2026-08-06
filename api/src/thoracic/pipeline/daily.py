@@ -75,14 +75,14 @@ async def run_daily(target_date: date, *, dry_run: bool = False) -> dict[str, An
             log.info(f"[daily {target_date}] mediastinal strict=0; running supplement")
             # 跑一次宽泛 esearch;复用 gather_esearch_all 但只针对 mediastinal
             from thoracic.pubmed.client import gather_esearch_all, gather_efetch_all
-            from thoracic.pubmed.dates import epdat_clause
+            from thoracic.pubmed.dates import edat_clause
             from thoracic.pubmed.journal_terms import load_journal_terms, chunk_journal_terms
             from thoracic.pubmed.parser import parse_pubmed_xml_batches
             chunks = chunk_journal_terms(load_journal_terms(), 18)
             supp = await gather_esearch_all(
                 chunks,
                 [{"slug": "mediastinal", "name_zh": "纵隔肿瘤(宽泛)", "query": MEDIASTINAL_SUPPLEMENT_QUERY}],
-                epdat_clause(target_date),
+                edat_clause(target_date),
                 api_key,
             )
             supplemental_pmids = supp.get("mediastinal", set())
@@ -198,11 +198,12 @@ async def run_daily(target_date: date, *, dry_run: bool = False) -> dict[str, An
         })
 
         # ====== Step 6: 写 JSON snapshot ======
-        # 按 epdat 从库里重建,而不是只写本次抓到的记录。两个原因:
+        # 按 epdat 从库里重建,而不是只写本次抓到的记录。原因:
         # 1) write_daily_snapshot 是整文件覆盖 —— 重跑历史日期会抹掉该日已有的文章,
         #    而前端只读 snapshot JSON,被抹掉的文章在站点上就彻底消失了;
-        # 2) [epdat] 检索命中的文章,其 XML 里的 epdat 可能落在别的日期,
-        #    要连同那些日期一起重建,否则会散落在错误的日期桶里。
+        # 2) 检索用 [edat](入库日),存储 epdat 亦为入库日,通常一致;
+        #    但为防个别文章 XML 日期与检索日错位,仍把抓到的 epdat 一并纳入重建,
+        #    避免散落在错误的日期桶里。
         affected = {target_date.isoformat()}
         affected.update(r["epdat"] for r in article_records if r.get("epdat"))
         log.info(f"[daily {target_date}] step 6: rebuild snapshots {sorted(affected)}")

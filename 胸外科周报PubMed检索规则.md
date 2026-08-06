@@ -1,28 +1,29 @@
 # 胸外文献每日监控 — PubMed 检索与分类规则
 
-> 用途:汇总 PubMed 上检索胸外科每日新文献的核心规则——发表时间(`[epdat]`)、病种分类、研究类型分类、检索式组装、筛选规范、LLM 辅助分类、可用工具与调用方式。供后续手工或脚本化检索直接复用。
+> 用途:汇总 PubMed 上检索胸外科每日新文献的核心规则——入库时间(`[edat]`)、病种分类、研究类型分类、检索式组装、筛选规范、LLM 辅助分类、可用工具与调用方式。供后续手工或脚本化检索直接复用。
 >
 > **本版本基于 v4 plan**: 单日监控(非周报),5 病种 × 5 研究类型,单归属,LLM(MiniMax M3)辅助。
 
 ---
 
-## 一、文献发表时间:`[epdat]` 确定
+## 一、文献入库时间:`[edat]` 确定
 
 ### 1.1 规则核心
 
-- PubMed 检索的发表时间**严格**采用 **Electronic Date of Publication (电子出版日期)**,PubMed 字段标识为 **`[epdat]`**。
-- 时间窗为**前一个自然日**(Beijing 时区的"昨天"),**不使用** `[dp]`、`[pdat]`、`[edat]`、`last 7 days`、滚动时间窗(除非显式覆盖)。
-- 检索式片段格式:`YYYY/MM/DD:YYYY/MM/DD[epdat]`(左闭右闭,单日区间)。
+- PubMed 检索的时间**严格**采用 **Entrez Date (PubMed 入库日)**,字段标识为 **`[edat]`**。
+- 时间窗为**前一个完整入库日**(美东日历日 = 北京昨天中午到今天中午进库的那批),**不使用** `[dp]`、`[pdat]`、`[epdat]`、`last 7 days`、滚动时间窗(除非显式覆盖)。
+- 检索式片段格式:`YYYY/MM/DD:YYYY/MM/DD[edat]`(左闭右闭,单日区间)。
+- **入库日翻页点 = 美东午夜**(北京 12:00 夏令时 / 13:00 冬令时);某入库日封口后永不再变,单日检索即完整、无需回看两天。
 
 ### 1.2 日期换算示例
 
-| 当前日期(Beijing) | 抓取目标日 | 检索式片段 |
+| 当前日期(Beijing) | 抓取目标日(美东"昨天") | 检索式片段 |
 |---|---|---|
-| 2026-07-29(周三) | 2026-07-28(周二) | `2026/07/28:2026/07/28[epdat]` |
-| 2026-08-01(周五) | 2026-07-31(周四) | `2026/07/31:2026/07/31[epdat]` |
-| 2026-07-31(周四) | 2026-07-30(周三) | `2026/07/30:2026/07/30[epdat]` |
+| 2026-07-29(周三) | 2026-07-28(周二) | `2026/07/28:2026/07/28[edat]` |
+| 2026-08-01(周五) | 2026-07-31(周四) | `2026/07/31:2026/07/31[edat]` |
+| 2026-07-31(周四) | 2026-07-30(周三) | `2026/07/30:2026/07/30[edat]` |
 
-> 每日 cron 在 **北京时间 8:00** 触发,抓取 `昨天` 的 `[epdat]` 单日区间。
+> 每日 cron 在 **北京时间 14:00** 触发(美东凌晨,入库日翻页后 1-2 小时),抓取美东"昨天"的 `[edat]` 单日区间。
 
 ### 1.3 计算逻辑(Python 通用实现)
 
@@ -30,21 +31,21 @@
 from datetime import date, timedelta, datetime
 from zoneinfo import ZoneInfo
 
-def previous_beijing_day(now: datetime | None = None) -> date:
-    """返回当前 Beijing 时区的"昨天"日期。"""
+def previous_us_eastern_day(now: datetime | None = None) -> date:
+    """返回美东时区的"昨天" = 前一个完整 PubMed 入库日。"""
     if now is None:
-        now = datetime.now(ZoneInfo("Asia/Shanghai"))
+        now = datetime.now(ZoneInfo("America/New_York"))
     else:
-        now = now.astimezone(ZoneInfo("Asia/Shanghai"))
+        now = now.astimezone(ZoneInfo("America/New_York"))
     return (now - timedelta(days=1)).date()
 ```
 
 调用示例:
 ```python
-target = previous_beijing_day()
-# 2026-07-29(Beijing) → target = date(2026, 7, 28)
-epdat_clause = f"{target.isoformat()}:{target.isoformat()}[epdat]"
-# "2026/07/28:2026/07/28[epdat]"
+target = previous_us_eastern_day()
+# 北京 14:00 运行 → target = date(美东昨天) = 前一个完整入库日
+edat_clause = f"{target.isoformat()}:{target.isoformat()}[edat]"
+# "2026/08/05:2026/08/05[edat]"
 ```
 
 ---
@@ -108,7 +109,7 @@ epdat_clause = f"{target.isoformat()}:{target.isoformat()}[epdat]"
 对每个病种 `d`,期刊 chunk `j`,组装形式:
 
 ```text
-(( <disease_query_for_d> ) AND ( "<j1>"[jour] OR "<j2>"[jour] OR ... OR "<jn>"[jour] ) AND <YYYY/MM/DD:YYYY/MM/DD[epdat]>)
+(( <disease_query_for_d> ) AND ( "<j1>"[jour] OR "<j2>"[jour] OR ... OR "<jn>"[jour] ) AND <YYYY/MM/DD:YYYY/MM/DD[edat]>)
 ```
 
 示例(肺癌第 1 个期刊 chunk,目标日 2026-07-28):
@@ -118,7 +119,7 @@ epdat_clause = f"{target.isoformat()}:{target.isoformat()}[epdat]"
  AND
  ( "Lancet"[jour] OR "Lancet Oncol"[jour] OR "J Clin Oncol"[jour] OR ... )
  AND
- 2026/07/28:2026/07/28[epdat])
+ 2026/07/28:2026/07/28[edat])
 ```
 
 ---
@@ -412,7 +413,7 @@ python -m thoracic.pipeline.backfill --from 2026-07-30 --to 2026-07-30 --dry-run
 
 | 字段 | 出处 | 用途 |
 |---|---|---|
-| `[epdat]` | PubMed 字段 | 电子出版日期(本规则唯一时间字段) |
+| `[edat]` | PubMed 字段 | PubMed 入库日(Entrez Date,本规则唯一时间字段) |
 | `[Mesh]` | PubMed MeSH | 受控词检索(默认 explosion) |
 | `[Mesh:noexp]` | PubMed MeSH | 受控词检索(不展开 narrower terms) |
 | `[Mesh Major Topic]` / `[majr]` | PubMed MeSH | 主要论题(带 `*` 标记的主题) |
@@ -425,7 +426,7 @@ python -m thoracic.pipeline.backfill --from 2026-07-30 --to 2026-07-30 --dry-run
 
 ## 九、不变量(项目铁律)
 
-1. **`[epdat]` 唯一时间字段**,禁止使用 `[dp]` / `[pdat]` / `[edat]` / `reldate`
+1. **`[edat]`(PubMed 入库日)唯一时间字段**,禁止使用 `[dp]` / `[pdat]` / `[epdat]` / `reldate`
 2. **每日单日区间**,禁止周/月区间检索(除非显式覆盖)
 3. **5 病种 × 5 研究类型 = 25 组合**,不增不减
 4. **单归属**:每篇 1 个 `type` + 1 个 `disease`,LLM 强制单选

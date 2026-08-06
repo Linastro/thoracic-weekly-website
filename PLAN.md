@@ -286,9 +286,10 @@ Thoracic-Weekly-Server/
 
 ### 5.4 时间窗
 
-- PubMed 字段:`[epdat]` (Electronic Date of Publication)
-- 单日区间:`YYYY/MM/DD:YYYY/MM/DD[epdat]`(左闭右闭)
+- PubMed 字段:`[edat]` (PubMed 入库日 / Entrez Date)
+- 单日区间:`YYYY/MM/DD:YYYY/MM/DD[edat]`(左闭右闭)
 - v3 改为"每日"模式,不再是周报
+- v5(2026-08):由 `[epdat]`(电子出版日)切换为 `[edat]`(入库日)。入库日封口后永不变,单日即完整,无需回看两天;运行时间改北京 14:00(美东翻页后),`TARGET=美东昨天`。
 
 ---
 
@@ -574,8 +575,8 @@ LLM 完全失败时:
 ```python
 async def run_daily(target_date: date):
     # 1. 5 病种 esearch
-    epdat = f"{target_date}:{target_date}[epdat]"
-    pmids_by_disease = await gather_esearch(build_queries(epdat))
+    edat = f"{target_date}:{target_date}[edat]"
+    pmids_by_disease = await gather_esearch(build_queries(edat))
 
     # 2. efetch 200/批(POST)
     raw = await gather_efetch(union(pmids_by_disease.values()), 200)
@@ -1063,7 +1064,7 @@ open http://localhost:8080
 | SQLite 并发写冲突 | 低 | 高 | WAL + cron 独占写,api 只读 |
 | Astro 构建期数据 stale | 中 | 低 | `make rebuild-web` 手动触发 |
 | macOS 与 Linux 容器差异(LF 换行、文件权限) | 低 | 中 | `.gitattributes` 强制 LF;docker compose volumes 命名卷绕开权限 |
-| `[epdat]` 漏检索引滞后论文 | 低 | 中 | v1 接受,后续可对比 `[edat]` |
+| `[epdat]` 漏检索引滞后论文 | — | — | v5 已切换 `[edat]`(入库日),单日即完整 |
 | cron outbound 限制(MiniMax/PubMed) | 低 | 高 | docker 默认放行,文档指出需放行 `eutils.ncbi.nlm.nih.gov` 与 `api.MiniMax.chat` |
 | 11 天回填期间 cron 误触发 | 低 | 中 | `docker compose stop cron` 暂停,回填后再 `start` |
 
