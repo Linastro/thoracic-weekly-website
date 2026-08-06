@@ -37,6 +37,10 @@ services:
       # 依赖宿主机 ~/thoracic-server/web/node_modules 存在(从镜像拷一次即可);
       # 容器内 npm run build 读 /data/snapshots(thoracic-data 卷),不需要 web/data 软链。
       - ./web:/app/web_src
+      # cron 脚本与 crontab bind mount:改 daily.sh/cleanup.sh/定时免重建镜像。
+      # 宿主机文件需可执行(chmod +x)。
+      - ./cron/cron_jobs:/app/cron_jobs
+      - ./cron/crontab:/etc/crontab
     depends_on:
       api:
         condition: service_healthy
