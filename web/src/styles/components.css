@@ -90,6 +90,8 @@
   max-width: 180px;
   height: auto;
   opacity: 0.92;
+  /* 负上边距抵消 flex gap(0.625rem),让 "by" 紧贴本 logo */
+  margin-top: -0.5rem;
 }
 .sidebar-brand-personal[data-variant='dark'] {
   display: none;
