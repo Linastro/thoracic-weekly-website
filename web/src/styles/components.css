@@ -72,6 +72,22 @@
 :root[data-theme='dark'] .sidebar-brand-wordmark[data-variant='dark'] {
   display: block;
 }
+/* 个人 logo(字标下方,浅/深两版,尺寸小于字标) */
+.sidebar-brand-personal {
+  width: 100%;
+  max-width: 120px;
+  height: auto;
+  opacity: 0.92;
+}
+.sidebar-brand-personal[data-variant='dark'] {
+  display: none;
+}
+:root[data-theme='dark'] .sidebar-brand-personal[data-variant='light'] {
+  display: none;
+}
+:root[data-theme='dark'] .sidebar-brand-personal[data-variant='dark'] {
+  display: block;
+}
 .sidebar-title {
   font-size: 0.75rem;
   text-transform: uppercase;
