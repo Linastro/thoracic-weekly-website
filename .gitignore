@@ -40,5 +40,14 @@ web/node_modules/
 # 一次性运维脚本(不属于产品代码)
 .scratch/
 
+# 品牌源图(仅本机;web/public/ 下是 sips 缩放版,已 commit)
+/linastro-logo-*.png
+
+# 服务器数据备份(勿提交)
+/local-server-backup-20260805/
+
+# 根目录误生成的空壳 lock 文件(web/package-lock.json 不受影响,仍跟踪)
+/package-lock.json
+
 # Logs
 *.log
