@@ -32,7 +32,9 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONPATH=/app \
     THORACIC_METRICS_PATH=/app/journal_metrics.json
 
-RUN apt-get update \
+# 国内 ECS 上 deb.debian.org 访问极慢/被卡,apt 源换阿里云镜像
+RUN sed -i 's|deb.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list.d/debian.sources \
+ && apt-get update \
  && apt-get install -y --no-install-recommends curl tini ca-certificates \
  && rm -rf /var/lib/apt/lists/*
 

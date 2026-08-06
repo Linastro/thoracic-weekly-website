@@ -7,10 +7,12 @@ FROM node:22-bookworm-slim AS runtime
 # supercronic 一旦自己成为 PID 1 就启用 reaper,而该 reaper fork exec 失败会让进程 fatal 退出。
 # 本容器不跑 Python:daily.sh 通过 curl 调 api 的 /api/backfill 执行流水线。
 
-RUN apt-get update \
+# 国内 ECS 上 github release 直连下载极慢,经 gh-proxy.com 代理(~100x 提速)；apt 源换阿里云镜像
+RUN sed -i 's|deb.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list.d/debian.sources \
+ && apt-get update \
  && apt-get install -y --no-install-recommends curl ca-certificates \
  && rm -rf /var/lib/apt/lists/* \
- && curl -fsSL https://github.com/aptible/supercronic/releases/download/v0.2.33/supercronic-linux-amd64 \
+ && curl -fsSL https://gh-proxy.com/https://github.com/aptible/supercronic/releases/download/v0.2.33/supercronic-linux-amd64 \
         -o /usr/local/bin/supercronic \
  && chmod +x /usr/local/bin/supercronic
 
@@ -23,7 +25,7 @@ COPY web /app/web_src
 RUN cd /app/web_src && \
     # .dockerignore 排除了 web/data,创建空目录以便 symlink
     mkdir -p /app/web_src/data && \
-    npm install --no-audit --no-fund && \
+    npm install --no-audit --no-fund --registry=https://registry.npmmirror.com && \
     # web/data/snapshots 是 host 上的 symlink → /tmp/.../snapshots
     # 在容器内需要重定向到 /data/snapshots(thoracic-data volume mount)
     rm -f /app/web_src/data/snapshots && \
