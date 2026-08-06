@@ -72,6 +72,18 @@
 :root[data-theme='dark'] .sidebar-brand-wordmark[data-variant='dark'] {
   display: block;
 }
+/* "by" 字样:字标与个人 logo 之间,左对齐,小号斜体弱化处理 */
+.sidebar-brand-by {
+  width: 100%;
+  max-width: 180px; /* 与个人 logo 同宽,左缘对齐 */
+  text-align: left;
+  font-size: 0.7rem;
+  font-style: italic;
+  font-weight: 300;
+  color: var(--muted);
+  letter-spacing: 0.03em;
+  line-height: 1;
+}
 /* 个人 logo(字标下方,浅/深两版,尺寸小于字标) */
 .sidebar-brand-personal {
   width: 100%;
