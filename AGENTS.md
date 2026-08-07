@@ -47,6 +47,8 @@ scp -r web/dist root@<host>:/tmp/webdist
 ssh root@<host> 'docker run --rm -v thoracic-server_web_dist:/app/web_dist -v /tmp/webdist:/dist:ro nginx:1.27-alpine sh -c "rm -rf /app/web_dist/* && cp -R /dist/. /app/web_dist/"'
 ```
 
+> **改 web 源码必须同步到服务器 `~/thoracic-server/web/`**:daily.sh 每天 14:00 会用 bind mount 的**服务器端源码**重新 build 并覆盖 web_dist。只在本机构建上传产物、不同步源码,下次 daily 重建就会回退(2026-08-07 已踩坑:个人 logo/by/页面措辞全部回退)。改完源码先 scp/rsync 到服务器再重建前端。
+>
 > **绝不在服务器上跑 `docker compose build cron`**:npm install 与 api/web 抢内存 → 整机 swap 抖动 30+ 分钟、SSH 失联(2026-08-06 当天踩 3 次)。api 构建是 uv sync(非 npm),相对安全。
 > **`docker compose cp` 进容器的改动只在可写层**,`up -d --force-recreate` 即丢失;bind mount 的改动则持久。
 
