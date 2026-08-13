@@ -36,6 +36,7 @@ cd web && npm run check    # astro check(唯一的类型检查)
 | **api Python 代码**(`api/src`) | 包装在镜像 site-packages,**必须 `docker compose build api` + `up -d --force-recreate api`**,`docker compose cp` 无效 |
 | `nginx.conf` | 唯一"改它只需 `restart web`"的常驻 bind mount |
 | `docker-compose.yml` | scp 后 `docker compose up -d --force-recreate`(不重建镜像,秒级) |
+| `Caddyfile`(HTTPS/域名) | 新增 `caddy` 服务(Caddy 前置 nginx,自动 LE 证书)。改后 `scp Caddyfile` + `docker compose restart caddy` 重读,无需重建镜像 |
 
 **前端发布(不在服务器上 build —— 1.6G 机器上 Astro build 会 OOM 卡死整机,已踩多次坑)**:
 
@@ -95,6 +96,7 @@ ssh root@<host> 'cd ~/thoracic-server && git add -A && git commit -m "改了啥(
 | `cron/crontab` | 容器 `TZ=Asia/Shanghai`,supercronic 按**北京时间**解释字段,不要按 UTC 换算。**已 bind mount**,改后 `restart cron` 即生效 |
 | api 环境变量 `THORACIC_METRICS_PATH` | 容器内包在 site-packages,相对路径找不到 `journal_metrics.json` |
 | 服务器级配置(非 compose) | **`/etc/docker/daemon.json` 的 registry-mirrors(daocloud/1ms/proxy)与 2G swap(`/swapfile`+`/swapfile2`)在系统重置后会丢**,必须重建(见 HANDOFF §6.12) |
+| `caddy_data` / `caddy_config` 卷 | Caddy 的 LE 证书 + ACME 账号持久化;删卷或 `down -v` 会重签证书、可能触发 LE 速率限制 |
 
 ## 数据流陷阱
 
