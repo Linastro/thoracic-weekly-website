@@ -1,4 +1,4 @@
-# AGENTS.md
+# CLAUDE.md
 
 This file provides guidance to the AI agent when working with code in this repository.
 
@@ -51,6 +51,39 @@ ssh root@<host> 'docker run --rm -v thoracic-server_web_dist:/app/web_dist -v /t
 >
 > **绝不在服务器上跑 `docker compose build cron`**:npm install 与 api/web 抢内存 → 整机 swap 抖动 30+ 分钟、SSH 失联(2026-08-06 当天踩 3 次)。api 构建是 uv sync(非 npm),相对安全。
 > **`docker compose cp` 进容器的改动只在可写层**,`up -d --force-recreate` 即丢失;bind mount 的改动则持久。
+
+## 服务器版本管理与回退(2026-08-13 起)
+
+服务器 `~/thoracic-server` **现在是 git 仓库**(基线 `600346e`),本地仓库仍是代码权威;两者互补 —— 本地 git 管代码演进,服务器 git 管"线上部署了什么"。改服务器前必走下面的节奏。
+
+### 改动前:先打快照(一条命令留四个回退点)
+
+```bash
+ssh root@<host> 'cd ~/thoracic-server && ./backup.sh'
+```
+
+`backup.sh` 一次备份:DB(`/data/thoracic.db.bak-<stamp>`)、snapshots(`/data/snapshots-<stamp>.tar.gz`)、`.env`(`backups/env-<stamp>`)、api 镜像 tag(`thoracic-server-api:bak-<stamp>`)。
+
+### 改动后:scp 完文件就留一个回退点
+
+```bash
+ssh root@<host> 'cd ~/thoracic-server && git add -A && git commit -m "改了啥(为什么)"'
+```
+
+### 回退方式(三层,工具不同)
+
+| 层 | 内容 | 回退 |
+|---|---|---|
+| 文件(web 源码 / cron / nginx / compose) | 服务器 git | `git checkout <commit> -- <file>` 或 `git revert` |
+| api 镜像(Python 代码) | 镜像 tag | `docker tag thoracic-server-api:bak-<stamp> thoracic-server-api:local` 后 `up -d --force-recreate api` |
+| 数据(SQLite + snapshots) | 卷内 `.bak` | 停 api → 覆盖回 `.bak` → 起 api(流程见 HANDOFF §6.12) |
+
+### 红线(违反即坏)
+
+1. **绝不**把 `.env`、`web/node_modules/`、`*.bak` 提交进服务器 git(已由 `.gitignore` 排除;提交后 `git ls-files | grep -E '\.env$|node_modules|\.bak'` 必须为空)。
+2. **绝不** `git push`(服务器连不上 github,且会泄露密钥)。
+3. **绝不在服务器上 build**(`docker compose build` / `npm install` / `npm run build` 拖垮 1.6G 机器),见上文部署节。
+4. 服务器 git 是 root 运行、文件属主是 UID 502(scp 遗留),报 "dubious ownership" 时已用 `git config --global --add safe.directory /root/thoracic-server` 豁免,勿删。
 
 ## 不能动的配置
 
