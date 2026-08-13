@@ -1,0 +1,93 @@
+---
+/**
+ * 周报单期详情页。
+ * 路由 /weekly/{week_start},如 /weekly/2026-07-20。
+ * 病种主题色通过 CSS 变量 --weekly-{slug} 定义在 components.css(浅/深两态),
+ * 节内用 --d/--db 引用,未知病种回退到 --accent / --card-bg。
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import TopNav from '../../components/TopNav.astro';
+import Sidebar from '../../components/Sidebar.astro';
+import {
+  loadWeeklyReports,
+  loadWeeklyReport,
+  formatWeekRange,
+  renderSummaryHtml,
+} from '../../lib/weekly';
+
+export function getStaticPaths() {
+  return loadWeeklyReports().map((r) => ({ params: { week: r.week_start } }));
+}
+
+const { week } = Astro.params;
+const report = loadWeeklyReport(week!);
+if (!report) {
+  return Astro.redirect('/weekly');
+}
+
+const range = formatWeekRange(report.week_start, report.week_end);
+const sections = report.sections.filter(
+  (s) => s.article_count > 0 && s.subsections.length > 0,
+);
+const pubmedUrl = (pmid: string) => `https://pubmed.ncbi.nlm.nih.gov/${pmid}/`;
+const generatedLabel = report.generated_at.slice(0, 19).replace('T', ' ');
+---
+
+<BaseLayout title={`胸外文献周报 · ${range}`}>
+  <Fragment slot="sidebar"><Sidebar /></Fragment>
+  <Fragment slot="topnav-right"><TopNav /></Fragment>
+
+  <div class="weekly-page">
+    <header class="weekly-hero">
+      <div class="weekly-hero-badge">Weekly Review</div>
+      <h1>胸外文献周报</h1>
+      <div class="weekly-hero-sub">{range}</div>
+      <div class="weekly-hero-meta">
+        <span class="weekly-hero-count">本周收录 <b>{report.total_articles}</b> 篇</span>
+      </div>
+    </header>
+
+    {sections.map((section) => (
+      <section
+        class="weekly-disease"
+        style={`--d: var(--weekly-${section.disease}); --db: var(--weekly-${section.disease}-bg);`}
+      >
+        <div class="weekly-disease-head">
+          <i class="weekly-mark" aria-hidden="true"></i>
+          <span class="weekly-disease-name">{section.disease_zh}</span>
+          <span class="weekly-disease-count">{section.article_count} 篇</span>
+        </div>
+        <div class="weekly-disease-body">
+          {section.subsections.map((sub) => (
+            <div class="weekly-type-block">
+              <div class="weekly-type-title">
+                <i class="weekly-tick" aria-hidden="true"></i>
+                {sub.type_zh}
+              </div>
+              <p class="weekly-summary" set:html={renderSummaryHtml(sub.summary)}></p>
+            </div>
+          ))}
+        </div>
+      </section>
+    ))}
+
+    <section class="weekly-refcard">
+      <h2>参考文献</h2>
+      <ol class="weekly-ref-list">
+        {report.references.map((ref) => (
+          <li class="weekly-ref" id={`ref-${ref.ref_no}`}>
+            <span class="weekly-ref-no">[{ref.ref_no}]</span>{' '}
+            {ref.authors.join(', ')} {ref.title} <i>{ref.journal_full}</i>{' '}
+            {ref.pubdate}
+            {ref.doi && <> doi:{ref.doi}</>}
+            {ref.impact_factor !== null && <> &nbsp;·&nbsp; IF {ref.impact_factor}</>}
+            {ref.jcr_quartile && <> · {ref.jcr_quartile}</>}{' '}
+            <a class="weekly-pubmed" href={pubmedUrl(ref.pmid)} target="_blank" rel="noopener noreferrer">PubMed↗</a>
+          </li>
+        ))}
+      </ol>
+    </section>
+
+    <div class="weekly-foot">生成于 {generatedLabel} · 周界按 PubMed 入库日(edat)划分</div>
+  </div>
+</BaseLayout>

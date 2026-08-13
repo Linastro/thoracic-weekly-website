@@ -231,6 +231,25 @@ async def list_articles_for_snapshot(
     return [_deserialize_article(row_to_dict(row)) for row in rows]
 
 
+async def list_articles_for_week(
+    conn: aiosqlite.Connection, date_from: str, date_to: str
+) -> list[dict[str, Any]]:
+    """取 [date_from, date_to] epdat 区间内全部已发布文献,不分页 —— 供周报用。
+
+    写法仿 `list_articles_for_snapshot`,仅把单日 `epdat = ?` 换成
+    `epdat BETWEEN ? AND ?`,并按 epdat / fetched_at / pmid 升序稳定排序。
+    """
+    cursor = await conn.execute(
+        "SELECT * FROM articles WHERE llm_excluded = 0 "
+        "AND epdat BETWEEN ? AND ? "
+        "ORDER BY epdat, fetched_at, pmid",
+        (date_from, date_to),
+    )
+    rows = await cursor.fetchall()
+    await cursor.close()
+    return [_deserialize_article(row_to_dict(row)) for row in rows]
+
+
 async def list_articles_search(
     conn: aiosqlite.Connection, query: str, limit: int = 50
 ) -> list[dict[str, Any]]:

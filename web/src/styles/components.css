@@ -544,3 +544,254 @@
   font-size: 1rem;
   line-height: 1;
 }
+
+/* ============ 周报 ============ */
+
+/* 病种主题色:浅色态定义在 :root,暗色态在 :root[data-theme='dark'] 覆盖(tokens.css 同款写法)。
+   浅色 = 主题色/浅底;深色 = 亮主题色/深底。 */
+:root {
+  --weekly-lung_cancer: #2563eb;
+  --weekly-lung_cancer-bg: #eff6ff;
+  --weekly-esophageal: #d97706;
+  --weekly-esophageal-bg: #fff7ed;
+  --weekly-mediastinal: #7c3aed;
+  --weekly-mediastinal-bg: #f5f3ff;
+  --weekly-tracheal: #0d9488;
+  --weekly-tracheal-bg: #f0fdfa;
+  --weekly-chest_wall_injury: #e11d48;
+  --weekly-chest_wall_injury-bg: #fff1f2;
+}
+:root[data-theme='dark'] {
+  --weekly-lung_cancer: #60a5fa;
+  --weekly-lung_cancer-bg: #172554;
+  --weekly-esophageal: #fbbf24;
+  --weekly-esophageal-bg: #422006;
+  --weekly-mediastinal: #a78bfa;
+  --weekly-mediastinal-bg: #2e1065;
+  --weekly-tracheal: #2dd4bf;
+  --weekly-tracheal-bg: #134e4a;
+  --weekly-chest_wall_injury: #fb7185;
+  --weekly-chest_wall_injury-bg: #4c0519;
+}
+
+/* 列表页 */
+.weekly-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.weekly-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  color: var(--fg);
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s;
+}
+.weekly-list-item:last-child { border-bottom: none; }
+.weekly-list-item:hover {
+  background: var(--card-bg);
+  text-decoration: none;
+}
+.weekly-list-range {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.weekly-list-count {
+  font-size: 0.875rem;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+/* 详情页 */
+.weekly-page { max-width: 860px; }
+
+/* 题头 */
+.weekly-hero {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 36px 36px 28px;
+  margin-bottom: 26px;
+  position: relative;
+  overflow: hidden;
+}
+.weekly-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 4px;
+  background: linear-gradient(90deg, #2563eb, #0d9488, #7c3aed);
+}
+.weekly-hero-badge {
+  display: inline-block;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  color: var(--link);
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.weekly-hero h1 {
+  margin: 0 0 4px;
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.weekly-hero-sub {
+  font-size: 16px;
+  color: var(--muted);
+  font-weight: 500;
+  margin-bottom: 16px;
+}
+.weekly-hero-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  align-items: center;
+  font-size: 14px;
+  color: var(--muted);
+}
+.weekly-hero-count b { color: var(--fg); font-size: 16px; }
+
+/* 病种节:左侧主题色竖条 + 浅色底块 */
+.weekly-disease {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  border-left: 4px solid var(--d, var(--accent));
+  margin-bottom: 24px;
+  overflow: hidden;
+}
+.weekly-disease-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--db, var(--card-bg));
+  padding: 12px 20px;
+}
+.weekly-mark {
+  width: 6px;
+  height: 16px;
+  border-radius: 3px;
+  background: var(--d, var(--accent));
+}
+.weekly-disease-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--fg);
+}
+.weekly-disease-count {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--d, var(--accent));
+  background: var(--bg);
+  border: 1px solid currentColor;
+  padding: 1px 10px;
+  border-radius: 999px;
+  opacity: 0.9;
+}
+.weekly-disease-body { padding: 20px 22px 8px; }
+
+/* 类型小节 */
+.weekly-type-block { margin-bottom: 20px; }
+.weekly-type-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--fg);
+  margin-bottom: 6px;
+}
+.weekly-tick {
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  background: var(--d, var(--accent));
+  flex-shrink: 0;
+}
+.weekly-summary {
+  margin: 0;
+  font-size: 15px;
+  color: var(--fg);
+  line-height: 1.85;
+  padding-left: 17px;
+}
+
+/* 综述正文里的引用上标(renderSummaryHtml 注入,全局选择器以命中 set:html 内容) */
+sup.cite a {
+  color: var(--d, var(--link));
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.78em;
+  padding: 0 1px;
+}
+sup.cite a:hover { text-decoration: underline; }
+
+/* 参考文献 */
+.weekly-refcard {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 24px 26px 18px;
+  margin-top: 8px;
+}
+.weekly-refcard h2 {
+  margin: 0 0 14px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--fg);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.weekly-refcard h2::before {
+  content: '';
+  width: 8px;
+  height: 16px;
+  border-radius: 3px;
+  background: var(--accent);
+  display: inline-block;
+}
+.weekly-ref-list { list-style: none; margin: 0; padding: 0; }
+.weekly-ref {
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: var(--fg);
+  word-break: break-word;
+}
+.weekly-ref:hover { background: var(--card-bg); }
+.weekly-ref-no {
+  color: var(--accent);
+  font-weight: 700;
+  margin-right: 4px;
+}
+.weekly-ref i { color: var(--fg); }
+.weekly-pubmed {
+  color: var(--link);
+  text-decoration: none;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.weekly-pubmed:hover { text-decoration: underline; }
+
+/* 页脚 */
+.weekly-foot {
+  margin-top: 26px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+@media (max-width: 600px) {
+  .weekly-page { max-width: 100%; }
+  .weekly-hero { padding: 26px 20px 20px; }
+  .weekly-hero h1 { font-size: 24px; }
+}

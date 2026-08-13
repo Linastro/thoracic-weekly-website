@@ -12,3 +12,5 @@
 0 14 * * * /app/cron_jobs/daily.sh
 # 每周一北京 10:00 - 清理 180 天前的 snapshot
 0 10 * * 1 /app/cron_jobs/cleanup.sh
+# 周日北京 19:00 - 生成上周周报(发布靠次日 daily 14:00 的 build 顺带带出)
+0 19 * * 0 /app/cron_jobs/weekly.sh

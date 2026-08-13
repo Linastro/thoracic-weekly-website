@@ -1,0 +1,34 @@
+---
+/**
+ * 周报列表页。
+ * 列出所有期(最新在上),每期一行:周区间 + 篇数,链到 /weekly/{week_start}。
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import TopNav from '../../components/TopNav.astro';
+import Sidebar from '../../components/Sidebar.astro';
+import { loadWeeklyReports, formatWeekRange } from '../../lib/weekly';
+
+const reports = loadWeeklyReports();
+const totalArticles = reports.reduce((acc, r) => acc + r.total_articles, 0);
+---
+
+<BaseLayout title="胸外文献周报 - 胸外文献每日监控">
+  <Fragment slot="sidebar"><Sidebar /></Fragment>
+  <Fragment slot="topnav-right"><TopNav /></Fragment>
+
+  <h1 class="page-title">胸外文献周报</h1>
+  <p class="page-subtitle">共 {reports.length} 期 · {totalArticles} 篇文献</p>
+
+  {reports.length === 0 ? (
+    <div class="empty-state">暂无周报</div>
+  ) : (
+    <div class="weekly-list">
+      {reports.map((r) => (
+        <a class="weekly-list-item" href={`/weekly/${r.week_start}`}>
+          <span class="weekly-list-range">{formatWeekRange(r.week_start, r.week_end)}</span>
+          <span class="weekly-list-count">{r.total_articles} 篇</span>
+        </a>
+      ))}
+    </div>
+  )}
+</BaseLayout>

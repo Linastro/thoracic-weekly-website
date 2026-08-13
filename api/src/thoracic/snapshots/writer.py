@@ -32,6 +32,25 @@ def write_daily_snapshot(target_date, records: list[dict], base_dir: str | None 
     return out_path
 
 
+def write_weekly_report(payload: dict, base_dir: str | None = None) -> Path:
+    """写周报 JSON 到 `SNAPSHOT_DIR/weekly/{week_start}-{week_end}.json`。
+
+    Args:
+        payload: 周报 payload(必须含 week_start / week_end 字段,契约见 pipeline/weekly.py)
+        base_dir: 覆盖 settings.SNAPSHOT_DIR(默认)
+
+    Returns:
+        写入的 Path
+    """
+    base = Path(base_dir or settings.SNAPSHOT_DIR) / "weekly"
+    base.mkdir(parents=True, exist_ok=True)
+    out_path = base / f"{payload['week_start']}-{payload['week_end']}.json"
+    out_path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    return out_path
+
+
 def read_daily_snapshot(target_date, base_dir: str | None = None) -> dict | None:
     """读 snapshot(供 Phase A 第 7 步 API 与第 10 步 Astro 使用);不存在返回 None。"""
     from datetime import date as _date

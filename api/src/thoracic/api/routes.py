@@ -13,10 +13,12 @@ from thoracic.config import settings
 from thoracic.db import repo
 from thoracic.db.connection import get_db, close_db, init_db
 from thoracic.pipeline.backfill import run_backfill
+from thoracic.pipeline.weekly import run_weekly
 from thoracic.pubmed.diseases import DISEASES
 from .schemas import (
     Article, BackfillDayResult, BackfillRequest, BackfillResponse,
     DateEntry, DiseaseInfo, HealthResponse, RunLogEntry, TypeInfo,
+    WeeklyRequest, WeeklyResponse,
 )
 
 log = logging.getLogger(__name__)
@@ -270,3 +272,15 @@ async def trigger_backfill(req: BackfillRequest) -> BackfillResponse:
         total_published=sum(d.to_publish for d in days),
         total_excluded=sum(d.to_exclude for d in days),
     )
+
+
+# ====== POST /api/weekly (Bearer auth) ======
+
+@router.post("/weekly", response_model=WeeklyResponse, dependencies=[Depends(_require_regen_token)])
+async def trigger_weekly(req: WeeklyRequest) -> WeeklyResponse:
+    log.info(f"weekly triggered: {req.week_start} ~ {req.week_end} dry_run={req.dry_run}")
+    try:
+        result = await run_weekly(req.week_start, req.week_end, dry_run=req.dry_run)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return WeeklyResponse(**result)

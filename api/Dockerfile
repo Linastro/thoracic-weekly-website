@@ -12,6 +12,9 @@ COPY api/pyproject.toml ./api/pyproject.toml
 # setuptools 需要 api/src 存在才能识别 thoracic 包
 COPY api/src ./api/src
 RUN --mount=type=cache,target=/root/.cache/uv \
+    # 国内直连 files.pythonhosted.org 慢且会挂起(2026-08-13 踩坑:uv 卡死 10+ 分钟),
+    # 把 lock 里的文件 URL 重写到清华镜像(路径结构一致 /packages/...),下载提速。
+    sed -i 's|https://files.pythonhosted.org|https://pypi.tuna.tsinghua.edu.cn|g' uv.lock && \
     # Phase B 4th fix:阿里云服务器访问 PyPI 慢,uv 默认 30s 超时不够
     UV_HTTP_TIMEOUT=180 \
     # --no-editable:把 thoracic 装到 site-packages(.pth 路径错配导致 ModuleNotFoundError)

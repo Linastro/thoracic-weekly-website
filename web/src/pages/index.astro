@@ -5,7 +5,6 @@ import Sidebar from '../components/Sidebar.astro';
 import FilterTabs from '../components/FilterTabs.astro';
 import { loadAllArticles } from '../lib/data';
 import { DISEASES, TYPES } from '../lib/types';
-import { DISEASES, TYPES } from '../lib/types';
 
 // 静态站无 SSR,URL 参数(Astro.url.searchParams)在构建期被剥离,所以
 // 渲染时拿不到 ?disease=&type=。

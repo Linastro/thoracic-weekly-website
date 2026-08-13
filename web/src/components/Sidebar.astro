@@ -6,7 +6,7 @@ const currentPath = Astro.url.pathname;
 const contentSection = [
   { href: '/', label: '全部文献', match: (p: string) => p === '/' },
   { href: '/topics', label: '主题分类', match: (p: string) => p.startsWith('/topics') },
-  { href: '#', label: '周报(即将上线)', match: () => false },
+  { href: '/weekly', label: '周报', match: (p: string) => p.startsWith('/weekly') },
 ];
 
 const moreSection = [

@@ -98,3 +98,20 @@ class BackfillResponse(BaseModel):
     total_days: int
     total_published: int
     total_excluded: int
+
+
+class WeeklyRequest(BaseModel):
+    week_start: str = Field(..., pattern=r"^\d{4}-\d{2}-\d{2}$")
+    week_end: str = Field(..., pattern=r"^\d{4}-\d{2}-\d{2}$")
+    dry_run: bool = False
+
+    model_config = {"populate_by_name": True}
+
+
+class WeeklyResponse(BaseModel):
+    week_start: str
+    week_end: str
+    total_articles: int
+    section_count: int
+    dry_run: bool
+    path: str | None = None
