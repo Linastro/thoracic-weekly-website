@@ -1,0 +1,11 @@
+{
+    email chutonglin@126.com
+}
+
+www.thoracic-linastro.com.cn {
+    reverse_proxy web:80
+}
+
+thoracic-linastro.com.cn {
+    redir https://www.thoracic-linastro.com.cn{uri} 301
+}

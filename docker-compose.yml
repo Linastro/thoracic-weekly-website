@@ -69,6 +69,23 @@ services:
           nocopy: true
       - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
 
+  caddy:
+    image: caddy:2-alpine
+    container_name: thoracic-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+
 volumes:
   thoracic-data:    # SQLite + snapshot 持久化
   web_dist:         # cron build 输出,web 容器从这里读取
+  caddy_data:       # Caddy 签发与管理的 LE 证书、ACME 账号数据持久化
+  caddy_config:     # Caddy 自动生成的 JSON 配置(admin API 写入),需持久化否则重启会重签证书
