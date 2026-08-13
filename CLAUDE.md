@@ -25,7 +25,7 @@ cd web && npm run check    # astro check(唯一的类型检查)
 
 ## 部署(非常规,容易出错)
 
-服务器 `~/thoracic-server` **不是 git 仓库**,靠 `scp` 同步文件。**web 源码、cron 脚本、crontab 都已 bind mount**(2026-08-06 起,见 docker-compose.yml),不再烤进镜像。
+服务器 `~/thoracic-server` **是 git 仓库**(基线 `600346e`,见下「服务器版本管理与回退」节),靠 `scp` 同步文件。**web 源码、cron 脚本、crontab 都已 bind mount**(2026-08-06 起,见 docker-compose.yml),不再烤进镜像。
 
 ### 各层改动方式
 
@@ -34,7 +34,7 @@ cd web && npm run check    # astro check(唯一的类型检查)
 | **web 源码**(`web/src`、`web/public` 等) | bind mount `./web:/app/web_src`。scp 到 `~/thoracic-server/web/` → 本机构建前端 → 上传产物(见下)。**无需重建镜像** |
 | **cron 脚本/定时**(`cron/cron_jobs`、`cron/crontab`) | bind mount(`./cron/cron_jobs:/app/cron_jobs`、`./cron/crontab:/etc/crontab`)。scp 即可(注意 `chmod +x`);改 crontab 后需 `docker compose restart cron` 让 supercronic 重读 |
 | **api Python 代码**(`api/src`) | 包装在镜像 site-packages,**必须 `docker compose build api` + `up -d --force-recreate api`**,`docker compose cp` 无效 |
-| `nginx.conf` | 唯一"改它只需 `restart web`"的常驻 bind mount |
+| `nginx.conf` | 改它只需 `restart web` 的常驻 bind mount |
 | `docker-compose.yml` | scp 后 `docker compose up -d --force-recreate`(不重建镜像,秒级) |
 | `Caddyfile`(HTTPS/域名) | 新增 `caddy` 服务(Caddy 前置 nginx,自动 LE 证书)。改后 `scp Caddyfile` + `docker compose restart caddy` 重读,无需重建镜像 |
 
@@ -115,3 +115,4 @@ ssh root@<host> 'cd ~/thoracic-server && git add -A && git commit -m "改了啥(
 - 一次性运维脚本放 `.scratch/`(已 gitignore),不要混进产品代码。
 - 嵌套 ssh + `docker exec` + python 的引号极易出错(HTML 实体会漏进 SQL)。写成真实 `.py` 文件再 `scp` + `docker compose cp`,不要堆行内引号。
 - 品牌素材:`web/public/*.png`(brand-wordmark / linastro-logo)是仓库根目录原图(未纳入 git,只在本机)的 `sips` 缩放版且已 commit。改品牌视觉需用户重新提供原图;改图后 `Sidebar.astro` 的 img `width/height` 要跟新比例同步(light/dark 比例可能不一致)。
+- **ICP 备案号**:`Sidebar.astro` 底部 `.sidebar-footer` 里是 `京ICP备2026051313号`(法定要求,链接 beian.miit.gov.cn),别删。
