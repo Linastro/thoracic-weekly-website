@@ -11,6 +11,11 @@
   min-height: 100vh;
 }
 
+.app-sidebar {
+  display: flex;
+  flex-direction: column;
+}
+
 .app-main {
   display: flex;
   flex-direction: column;

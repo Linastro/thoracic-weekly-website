@@ -47,6 +47,9 @@
   border-right: 1px solid var(--border);
   background: var(--bg);
   padding: 1.25rem 0;
+  display: flex;
+  flex-direction: column;
+  flex: 1 0 auto;
 }
 
 .sidebar-section {
@@ -131,6 +134,21 @@
   background: var(--tag-bg);
   color: var(--accent);
   font-weight: 600;
+}
+
+/* ICP 备案号:法定要求,固定到侧边栏底部 */
+.sidebar-footer {
+  margin-top: auto;
+  padding: 0.75rem 1rem 0;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.sidebar-footer a {
+  color: var(--muted);
+}
+.sidebar-footer a:hover {
+  color: var(--accent);
+  text-decoration: none;
 }
 
 .placeholder-page {
