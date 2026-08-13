@@ -1,7 +1,7 @@
 """周报 pipeline:把一周已入库(epdat 区间)的胸外文献组织成「病种 × 研究类型」中文综述。
 
-流程:校验区间 → 查库 → 全局编号+分组(纯代码,不靠 LLM)→ 逐非空病种调一次
-LLM 综述 → 组装 payload → 写 `SNAPSHOT_DIR/weekly/{week_start}-{week_end}.json`。
+流程:校验区间 → 查库 → 全局编号+分组(纯代码,不靠 LLM)→ 逐病种、逐类型各调
+一次 LLM 综述 → 组装 payload → 写 `SNAPSHOT_DIR/weekly/{week_start}-{week_end}.json`。
 
 分组/编号顺序常量写死在本文件(与前端 web/src/lib/types.ts 一致)。
 """
@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from datetime import date, datetime, timezone
 from typing import Any
 
@@ -99,9 +100,60 @@ def _build_sections(ordered: list[dict]) -> list[dict]:
     return sections
 
 
-def _placeholder(sec: dict, sub: dict) -> str:
-    """LLM 失败或缺省时的占位 summary。"""
-    return f"本周{sec['disease_zh']}·{sub['type_zh']}新增 {len(sub['_articles'])} 篇,详见参考文献。"
+def _fallback_summary(sub: dict) -> str:
+    """确定性兜底 summary:逐篇列中文题名 + [ref_no],保证非空且带引用。
+
+    不依赖 LLM:LLM 调用失败、漏掉某类型或 summary 为空时,用它代替裸占位文案。
+    """
+    articles = sub["_articles"]
+    items = ";".join(
+        f"[{a['ref_no']}] {a.get('title_zh') or ''}" for a in articles
+    )
+    return f"本周{sub['type_zh']}新增 {len(articles)} 篇:{items}"
+
+
+def _collapse_citations(text: str) -> str:
+    """把相邻且编号连续的 [n][n+1]... 折叠成 [n-m]。
+
+    只折叠「紧邻、中间无任何字符」且编号逐一连续(差值恰为 1)的引用串:
+    - [1][2][3][4]    → [1-4]
+    - [1][2][3][5][6] → [1-3][5-6](不连续处断开)
+    - [1][3]           → [1][3](相邻但不连续,保留原样)
+    - 单个 [n]、中间隔文字/空格的保持原样。
+    """
+
+    def _fold(m: re.Match[str]) -> str:
+        nums = [int(x) for x in re.findall(r"\d+", m.group(0))]
+        parts: list[str] = []
+        start = prev = nums[0]
+        for n in nums[1:]:
+            if n == prev + 1:
+                prev = n
+                continue
+            parts.append(f"[{start}]" if start == prev else f"[{start}-{prev}]")
+            start = prev = n
+        parts.append(f"[{start}]" if start == prev else f"[{start}-{prev}]")
+        return "".join(parts)
+
+    return re.sub(r"(?:\[\d+\]){2,}", _fold, text)
+
+
+def _ensure_citations(sub: dict, summary: str) -> str:
+    """保证每个类型段落的 summary 非空且带 [n] 引用,不依赖 LLM 自觉。
+
+    - summary 缺失/为空 → 确定性兜底(逐篇列题名 + [编号])。
+    - summary 非空但无任何 [数字] 引用 → 末尾追加该类型全部编号。
+    - 已带引用 → 原样保留。
+
+    最终返回值统一过 `_collapse_citations`,把相邻且连续的编号堆叠折叠成范围,
+    保证输出到 JSON 的 summary 里不出现 [1][2][3]... 逐个连排。
+    """
+    if not summary:
+        return _fallback_summary(sub)
+    ref_nos = sorted(a["ref_no"] for a in sub["_articles"])
+    if not re.search(r"\[\d+", summary):
+        summary = f"{summary} " + "".join(f"[{r}]" for r in ref_nos)
+    return _collapse_citations(summary)
 
 
 def _build_llm_payload(disease_articles: list[dict]) -> list[dict]:
@@ -122,32 +174,47 @@ def _build_llm_payload(disease_articles: list[dict]) -> list[dict]:
     return payload
 
 
-async def _summarize_disease(sec: dict, disease_articles: list[dict]) -> int:
-    """对一个病种调一次 LLM;失败降级为占位,不整体失败。返回成功(1)/失败(0)。"""
-    user = build_user_payload(sec["disease_zh"], _build_llm_payload(disease_articles))
-    try:
-        result = await default_client.chat_json(
-            [
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user},
-            ],
-            temperature=0.3,
-        )
-    except Exception as e:  # noqa: BLE001 - 任何失败都降级,不拖垮整份周报
-        log.error(f"周报病种 {sec['disease_zh']} LLM 调用失败:{e}")
-        for sub in sec["subsections"]:
-            sub["summary"] = _placeholder(sec, sub)
-        return 0
+async def _summarize_disease(sec: dict) -> int:
+    """对一个病种按「类型」逐段调 LLM;某类型失败只降级该类型,不整体失败。
 
-    # 只保留该病种实际存在的类型,按固定类型顺序排列;LLM 漏了某类型则写占位
-    by_type: dict[str, str] = {}
-    subs = result.get("subsections", []) if isinstance(result, dict) else []
-    for s in subs:
-        if isinstance(s, dict) and s.get("type"):
-            by_type[s["type"]] = str(s.get("summary") or "")
+    每个(病种 × 类型)各调一次 LLM,每次只喂该类型自己的文章(1~N 篇),
+    单次输入与输出都可控,避免大病种(如肺癌单病种 20+ 篇)一次调用被截断
+    而退化成逐篇罗列题名。无论 LLM 成功与否,每个类型段 summary 都保证非空
+    且带 [n] 引用(走 `_ensure_citations`)。
+    返回全部类型成功(1)/存在失败(0)。
+    """
+    ok = 0
     for sub in sec["subsections"]:
-        sub["summary"] = by_type.get(sub["type"], "") or _placeholder(sec, sub)
-    return 1
+        user = build_user_payload(
+            sec["disease_zh"],
+            _build_llm_payload(sub["_articles"]),
+            type_zh=sub["type_zh"],
+        )
+        try:
+            result = await default_client.chat_json(
+                [
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": user},
+                ],
+                temperature=0.3,
+            )
+        except Exception as e:  # noqa: BLE001 - 单类型失败只降级该类型,不拖垮整份周报
+            log.error(
+                f"周报病种 {sec['disease_zh']} 类型 {sub['type_zh']} LLM 调用失败:{e}"
+            )
+            sub["summary"] = _fallback_summary(sub)
+            continue
+
+        # 单类型调用:返回的 subsections 一般只含该类型一项;容错取首个带 summary 的段落。
+        summary = ""
+        subs = result.get("subsections", []) if isinstance(result, dict) else []
+        for s in subs:
+            if isinstance(s, dict) and s.get("summary"):
+                summary = str(s["summary"])
+                break
+        sub["summary"] = _ensure_citations(sub, summary)
+        ok += 1
+    return 1 if ok == len(sec["subsections"]) else 0
 
 
 def _build_references(ordered: list[dict]) -> list[dict]:
@@ -218,18 +285,15 @@ async def run_weekly(
         sections = _build_sections(ordered)
         references = _build_references(ordered)
 
-        # 4. 逐非空病种调一次 LLM
+        # 4. 逐病种、逐类型各调一次 LLM(单类型小输入,避免大病种单次调用截断)
         if not dry_run:
             for sec in sections:
-                disease_articles = [
-                    a for a in ordered if a["disease"] == sec["disease"]
-                ]
-                await _summarize_disease(sec, disease_articles)
+                await _summarize_disease(sec)
         else:
-            # dry_run:不调 LLM,summary 留空占位
+            # dry_run:不调 LLM,summary 用确定性兜底(带引用、非空),不写文件
             for sec in sections:
                 for sub in sec["subsections"]:
-                    sub["summary"] = _placeholder(sec, sub)
+                    sub["summary"] = _fallback_summary(sub)
 
         # 5. 组装最终 payload(前端契约,务必精确)
         payload = {

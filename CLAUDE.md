@@ -2,7 +2,7 @@
 
 This file provides guidance to the AI agent when working with code in this repository.
 
-PubMed 胸外文献每日监控站:PubMed 抓取 → LLM(当前 DeepSeek)分类翻译 → SQLite → snapshot JSON → Astro 静态站。三容器(api / cron / web)。检索按 `[edat]`(PubMed 入库日),每日北京 14:00 跑。
+PubMed 胸外文献每日监控站:PubMed 抓取 → LLM(当前 DeepSeek)分类翻译 → SQLite → snapshot JSON → Astro 静态站。三容器(api / cron / web)。检索按 `[edat]`(PubMed 入库日),每日北京 14:00 跑。另有周报模式:每周一北京 19:00 用 DeepSeek 把上一周文献总结成按「病种 × 类型」的中文综述(见下「周报」)。
 
 ## 语言约定
 
@@ -94,6 +94,7 @@ ssh root@<host> 'cd ~/thoracic-server && git add -A && git commit -m "改了啥(
 | `web_dist` volume `nocopy: true` | 否则 nginx 默认欢迎页被灌进产物目录 |
 | `nginx.conf` `absolute_redirect off` | 否则目录补斜杠的 301 会按容器内 80 端口拼 origin,丢掉宿主映射端口 |
 | `cron/crontab` | 容器 `TZ=Asia/Shanghai`,supercronic 按**北京时间**解释字段,不要按 UTC 换算。**已 bind mount**,改后 `restart cron` 即生效 |
+| `api/Dockerfile` 里的 `sed ... tuna` | uv 下载源重写到清华 PyPI 镜像(`pypi.tuna.tsinghua.edu.cn`)。国内直连 `files.pythonhosted.org` 会随机挂起,重建 api 镜像曾卡死 10+ 分钟。**别删这行 sed**,否则下次 `docker compose build api` 又卡死 |
 | api 环境变量 `THORACIC_METRICS_PATH` | 容器内包在 site-packages,相对路径找不到 `journal_metrics.json` |
 | 服务器级配置(非 compose) | **`/etc/docker/daemon.json` 的 registry-mirrors(daocloud/1ms/proxy)与 2G swap(`/swapfile`+`/swapfile2`)在系统重置后会丢**,必须重建(见 HANDOFF §6.12) |
 | `caddy_data` / `caddy_config` 卷 | Caddy 的 LE 证书 + ACME 账号持久化;删卷或 `down -v` 会重签证书、可能触发 LE 速率限制 |
@@ -108,6 +109,16 @@ ssh root@<host> 'cd ~/thoracic-server && git add -A && git commit -m "改了啥(
 - `daily_snapshots.article_count` 是**单次运行**统计,与 snapshot 文件篇数本就不一致,前端不用它。
 - cron 容器**没有 Python**,`daily.sh` 通过 `curl` 调 `/api/backfill`(内部即 `run_daily`)。
 - 健康检查是 `/api/health`(不是 `/healthz`)。
+
+## 周报(LLM 每周综述)
+
+每周一北京 19:00 `cron/cron_jobs/weekly.sh`(curl `POST /api/weekly` → `pipeline/weekly.py` 的 `run_weekly`)用 DeepSeek 把上一自然周(周一~周日,按 `articles.epdat` 区间)已入库文献总结成按「病种 × 类型」的中文综述(正文带 `[n]` 引用 + 底部英文参考文献),写 `SNAPSHOT_DIR/weekly/{start}-{end}.json`,再 `npm run build` 更新站点。
+
+关键约束(踩坑后固化,别改回去):
+- **LLM 按「病种 × 类型」逐类型各调一次**(`_summarize_disease`),不要合并成每病种一次 —— 大病种(肺癌 20+ 篇)单次调用输出会截断,退化成「罗列题名」兜底。
+- **引用兜底在代码层保证**:`_ensure_citations`(空摘要→逐篇列题名带引用;无引用→末尾追加编号)+ `_collapse_citations`(相邻连续 `[1][2][3]` 折叠成 `[1-3]`);前端 `renderSummaryHtml` 把 `[n-m]` 整体链到首篇 `#ref-n`。
+- 周报 JSON 放 `weekly/` **子目录**,别放 `SNAPSHOT_DIR` 顶层(否则 `data.ts` 的 `loadAllSnapshots` 会把它误当 daily 解析)。
+- 服务器端 build 读 `/data/snapshots/weekly/`(cron 容器挂 `thoracic-data:/data`);改周报前端样式后要记得 scp 到服务器 `~/thoracic-server/web/`。
 
 ## 文件约定
 

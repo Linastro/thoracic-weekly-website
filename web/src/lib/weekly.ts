@@ -91,26 +91,11 @@ export function formatWeekRange(weekStart: string, weekEnd: string): string {
   return `${s} – ${e}`;
 }
 
-/** 展开引用内部字符串([n]/[n-m]/[n,m] 的内容部分)为数字数组。 */
-function expandRefs(inner: string): number[] {
-  const out: number[] = [];
-  for (const part of inner.split(',')) {
-    const t = part.trim();
-    const m = /^(\d+)\s*-\s*(\d+)$/.exec(t);
-    if (m) {
-      const lo = Math.min(parseInt(m[1], 10), parseInt(m[2], 10));
-      const hi = Math.max(parseInt(m[1], 10), parseInt(m[2], 10));
-      for (let i = lo; i <= hi; i++) out.push(i);
-    } else if (/^\d+$/.test(t)) {
-      out.push(parseInt(t, 10));
-    }
-  }
-  return out;
-}
-
 /**
- * 把综述正文里的 [n]/[n-m]/[n,m] 引用渲染成彩色上标锚点链接(返回 HTML 字符串)。
- * [1-3] 这类范围会拆成 1、2、3 各自锚点;正文先做 HTML 转义再替换,避免破坏结构。
+ * 把综述正文里的 [n]/[n-m] 引用渲染成彩色上标锚点链接(返回 HTML 字符串)。
+ * 整段编号(含 [1-14] 范围)整体渲染成单个链接,href 指向编号串里的第一个编号
+ * (范围引用跳转到范围内第一条文献 #ref-1);链接文字保持 [n]/[n-m] 原样。
+ * 正文先做 HTML 转义再替换,避免破坏结构。
  */
 export function renderSummaryHtml(summary: string): string {
   const escaped = summary
@@ -118,9 +103,8 @@ export function renderSummaryHtml(summary: string): string {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
-  return escaped.replace(/\[(\d+(?:[,\-]\d+)*)\]/g, (_m, inner: string) =>
-    expandRefs(inner)
-      .map((n) => `<sup class="cite"><a href="#ref-${n}">[${n}]</a></sup>`)
-      .join(''),
-  );
+  return escaped.replace(/\[(\d+(?:[,\-]\d+)*)\]/g, (whole, inner: string) => {
+    const first = inner.split(/[,-]/)[0];
+    return `<sup class="cite"><a href="#ref-${first}">${whole}</a></sup>`;
+  });
 }
