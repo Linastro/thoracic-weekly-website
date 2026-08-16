@@ -1,96 +1,63 @@
-# 胸外文献每日监控站
+# Thoracic Weekly · 胸外文献每日监控站
 
-> PubMed 每日抓取胸外文献 → LLM(MiniMax M3)分类与翻译 → SQLite 持久化 → Astro 静态网站展示。
-> 类似 <https://aihot.virxact.com/all> 的医学文献版本。
+> PubMed 胸外文献每日监控:PubMed 抓取 → LLM(DeepSeek)分类翻译 → SQLite → snapshot JSON → Astro 静态站。
+>
+> 线上地址:**https://www.thoracic-linastro.com.cn** ｜ 开源仓库:https://github.com/Linastro/thoracic-weekly-website
 
-## 当前状态(2026-08-01)
+## 简介
 
-- 65 篇 publish articles(2026-07-20 ~ 2026-07-31)
-- 本地 uvicorn :8080 + Astro dev :4321(无 Docker)
+每天北京时间 14:00,自动从 PubMed 按入库日 `[edat]` 抓取前一个完整入库日的 **5 大病种 × 5 类研究类型** 胸外文献,经大语言模型做单归属分类与中英翻译,持久化到 SQLite,并以卡片化静态网站展示。每周一 19:00 再自动把上一自然周(周一~周日)已入库文献总结成按「病种 × 类型」的中文周报(正文带引用 + 底部英文参考文献)。
 
-## 本地预览(无需 Docker,Phase A 开发模式)
+### 覆盖范围
+
+- **5 大病种**:肺癌、食管癌、纵隔肿瘤、气管疾病、气胸·外伤·胸壁
+- **5 类研究类型**:临床研究、AI/ML 研究、基础研究、综述与 Meta 分析、指南与共识
+- **期刊白名单**:仅收录 `journal_metrics.json` 中 114 本高影响力胸外相关期刊
+
+## 技术栈
+
+| 层 | 技术 |
+|---|---|
+| 后端 | Python 3.12 + FastAPI + SQLite(FTS5) |
+| 数据源 | PubMed E-utilities |
+| LLM | DeepSeek(OpenAI 兼容接口) |
+| 前端 | Astro 4 + React + TypeScript |
+| 部署 | Docker + Nginx + Caddy(HTTPS/域名) |
+
+## 本地运行
 
 ```bash
-# 1. 启动后端
+# 后端(必须显式给 PYTHONPATH 与两个路径变量,否则读不到包和数据)
 PYTHONPATH=api/src DB_PATH=/tmp/thoracic-data/thoracic.db SNAPSHOT_DIR=/tmp/thoracic-data/snapshots \
-  .venv/bin/uvicorn thoracic.main:app --host 0.0.0.0 --port 8080 &
+  .venv/bin/uvicorn thoracic.main:app --port 8080
 
-# 2. 启动前端 dev(带 vite proxy)
-cd web && npm run dev &
+# 前端 dev(vite proxy /api → 8080)
+cd web && npm run dev   # http://localhost:4321
 
-# 浏览器:http://localhost:4321
+# 前端类型检查(项目唯一类型检查)
+cd web && npm run check
 ```
 
-## 本地完整模拟(需 Docker Desktop,Phase A 模拟阶段)
+环境变量模板见 `.env.example`。
 
-适合"想看完整自动更新流程"的用户。
-
-### 安装 Docker Desktop(macOS)
-
-1. 打开 <https://www.docker.com/products/docker-desktop/>
-2. 下载 Apple Silicon 版本
-3. 安装后启动 Docker Desktop(菜单栏图标)
-4. 验证:`docker --version` 与 `docker info | head -3`
-
-### 启动
-
-```bash
-cd /Users/linastro/Documents/Claude\ Projects/Thoracic-Weekly-Server
-
-# 构建所有镜像(api + cron,共享镜像)
-docker compose build
-
-# 启动 3 容器
-docker compose up -d
-
-# 查看日志
-docker compose logs -f cron
-
-# 健康检查
-curl http://localhost:8080/api/health
-```
-
-cron 容器启动后会:
-
-1. **entrypoint**:检查 `web_dist` 是否为空,空则跑一次 `npm run build` 让 nginx 有内容可服务
-2. **`@reboot`**:立即 build Astro 网站(从 snapshot 读取最新数据)
-3. **每日北京时间 8:00(= UTC 0:00)**:抓前一天 → LLM → SQLite → snapshot → `npm run build`
-4. **每周一**:清理 180 天前 snapshot JSON
-5. nginx 容器从 `web_dist` named volume 读取最新 dist
-
-### 数据流(自动 rebuild)
+## 项目结构
 
 ```
-cron container                        web container
-┌──────────────────────┐              ┌──────────────┐
-│ supercronic          │              │  nginx :80   │
-│  ↓                  │              │  ↑           │
-│  daily.py           │              │  reads       │
-│   ↓                 │              │  web_dist    │
-│  SQLite (thoracic-data)            │  (ro)        │
-│   ↓                 │              │              │
-│  snapshot JSON →   ─┼── web_dist ──┼─► 静态文件   │
-│  npm run build      │  (volume)    │              │
-│   ↓                 │              │              │
-│  writes back to web_dist            │              │
-└──────────────────────┘              └──────────────┘
+api/                  # FastAPI 后端(pipeline / db / llm / snapshots / scripts)
+cron/                 # 定时脚本与 crontab(daily.sh / weekly.sh / cleanup.sh)
+web/                  # Astro 前端(静态站)
+journal_metrics.json  # 期刊白名单(IF / JCR 分区)
+docker-compose.yml    # 三容器 api / cron / web,前置 Caddy 做 HTTPS
 ```
 
-## 部署到云服务器(Phase B)
+## 数据流
 
-Phase B 实施计划见 `PLAN.md`:
+```
+PubMed([edat] 入库日) → LLM 分类/翻译 → SQLite → snapshot JSON → Astro 静态站
+```
 
-- `deploy.sh user@<server-ip>` 推送镜像 + 远端启动
-- 服务器需 Ubuntu 22.04+ + Docker
-- 配置 Caddy / nginx + Let's Encrypt 实现 HTTPS(可选)
+- 每日任务:`cron/cron_jobs/daily.sh`(北京 14:00,单日 `[edat]`)
+- 周报任务:`cron/cron_jobs/weekly.sh`(周一 19:00)
+- 清理任务:`cron/cron_jobs/cleanup.sh`(周一 10:00,删 180 天前 snapshot)
 
-## 关键文件
-
-- 检索规则:`胸外科周报PubMed检索规则.md`
-- 实施计划:`PLAN.md`
-- 后端入口:`api/src/thoracic/main.py`
-- 前端入口:`web/src/pages/index.astro`
-- Docker 编排:`docker-compose.yml`
-- cron 配置:`cron/crontab`
-- 防污染过滤:`api/src/thoracic/pipeline/daily.py`(search "filtered {filtered_out}")
-- snapshot 重建:`api/src/thoracic/scripts/rewrite_snapshots.py`
+更详细的架构约束、部署流程与踩坑记录见 `CLAUDE.md` 与 `HANDOFF.md`(后者含服务器信息,未纳入 git)。
