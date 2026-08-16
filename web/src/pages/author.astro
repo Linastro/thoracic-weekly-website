@@ -1,0 +1,114 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import TopNav from '../components/TopNav.astro';
+import Sidebar from '../components/Sidebar.astro';
+---
+
+<BaseLayout title="作者 - Thoracic Weekly">
+  <Fragment slot="sidebar"><Sidebar /></Fragment>
+  <Fragment slot="topnav-right"><TopNav /></Fragment>
+
+  <div class="author-page">
+    <div class="author-card">
+      <p class="author-eyebrow">关于作者 · About the Author</p>
+      <h1 class="author-name">Linastro</h1>
+      <p class="author-tagline">同时生活于硅基与医学世界的人</p>
+      <span class="author-badge">阿里云认证 · LLM 高级工程师</span>
+      <p class="author-bio">喜欢制作、分享一些 AI 工具。</p>
+    </div>
+
+    <div class="author-follow">
+      <h2>关注小红书</h2>
+      <p>在小红书分享最新制作的小工具,欢迎关注。</p>
+      <img
+        class="author-qr"
+        src="/qrcode-xiaohongshu.jpg"
+        alt="Linastro 的小红书二维码"
+        width="240"
+        loading="lazy"
+      />
+    </div>
+  </div>
+</BaseLayout>
+
+<style is:inline>
+  .author-page {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+  }
+  .author-card {
+    text-align: center;
+    padding: 3.5rem 2rem 3rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background:
+      radial-gradient(120% 90% at 50% 0%, var(--tag-bg) 0%, transparent 60%),
+      var(--bg);
+    position: relative;
+    overflow: hidden;
+  }
+  .author-card::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--accent), transparent);
+  }
+  .author-eyebrow {
+    font-size: 0.75rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 1.25rem;
+  }
+  .author-name {
+    font-family: Georgia, 'Songti SC', 'STSong', 'SimSun', serif;
+    font-size: 3rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--fg);
+    margin: 0 0 0.5rem;
+  }
+  .author-tagline {
+    font-size: 1.125rem;
+    color: var(--muted);
+    margin: 0 0 1.5rem;
+    letter-spacing: 0.05em;
+  }
+  .author-badge {
+    display: inline-block;
+    font-size: 0.8125rem;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    padding: 0.25rem 0.875rem;
+    border-radius: 999px;
+    margin-bottom: 1.25rem;
+  }
+  .author-bio {
+    color: var(--fg);
+    margin: 0;
+    line-height: 1.8;
+  }
+  .author-follow {
+    text-align: center;
+    margin-top: 2rem;
+    padding: 2rem 1.5rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--card-bg);
+  }
+  .author-follow h2 {
+    font-size: 1.25rem;
+    margin: 0 0 0.5rem;
+    color: var(--fg);
+  }
+  .author-follow p {
+    color: var(--muted);
+    margin: 0 0 1.25rem;
+  }
+  .author-qr {
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+  }
+</style>

@@ -4,13 +4,13 @@ import TopNav from '../components/TopNav.astro';
 import Sidebar from '../components/Sidebar.astro';
 ---
 
-<BaseLayout title="关于 - 胸外文献每日监控">
+<BaseLayout title="项目简介 - Thoracic Weekly">
   <Fragment slot="sidebar"><Sidebar /></Fragment>
   <Fragment slot="topnav-right"><TopNav /></Fragment>
 
   <article class="prose">
-    <h1>关于本项目</h1>
-    <p>胸外科文献每日监控站,从 PubMed 自动抓取每日(北京时间 14 点)新入库的 5 大病种 × 5 类研究类型的胸外科文献,经大语言模型分类与中英翻译后展示。</p>
+    <h1>项目简介</h1>
+    <p>胸外科文献每日监控站,从 PubMed 自动抓取每日(北京时间 14 点)新入库的 5 大病种 × 5 类研究类型的胸外科文献,经大语言模型分类与中英翻译后展示;每周一自动生成上一自然周按「病种 × 类型」的中文周报。</p>
 
     <h2>5 大病种</h2>
     <ul>
@@ -39,7 +39,19 @@ import Sidebar from '../components/Sidebar.astro';
       <li>PubMed E-utilities(数据源)</li>
       <li>大语言模型(LLM 分类与翻译)</li>
       <li>Astro 4(静态前端)</li>
-      <li>Docker + Nginx(部署)</li>
+      <li>Docker + Nginx + Caddy(部署,HTTPS/域名)</li>
     </ul>
+
+    <h2>开源</h2>
+    <p>本项目已开源,仓库地址:<a href="https://github.com/Linastro/thoracic-weekly-website" target="_blank" rel="noopener noreferrer">https://github.com/Linastro/thoracic-weekly-website</a></p>
+
+    <h2>订阅更新</h2>
+    <p>请微信关注"北医三院胸外科"微信公众号,获取每周更新推送。</p>
+    <img
+      src="/qrcode-wechat.jpg"
+      alt="北医三院胸外科公众号二维码"
+      width="240"
+      loading="lazy"
+    />
   </article>
 </BaseLayout>

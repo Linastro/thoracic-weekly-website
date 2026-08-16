@@ -8,7 +8,7 @@ const snaps = loadAllSnapshots();
 const totalArticles = snaps.reduce((acc, s) => acc + s.article_count, 0);
 ---
 
-<BaseLayout title="更新日志 - 胸外文献每日监控">
+<BaseLayout title="更新日志 - Thoracic Weekly">
   <Fragment slot="sidebar"><Sidebar /></Fragment>
   <Fragment slot="topnav-right"><TopNav totalCount={totalArticles} /></Fragment>
 
