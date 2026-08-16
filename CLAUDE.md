@@ -2,7 +2,7 @@
 
 This file provides guidance to the AI agent when working with code in this repository.
 
-PubMed 胸外文献每日监控站:PubMed 抓取 → LLM(当前 DeepSeek)分类翻译 → SQLite → snapshot JSON → Astro 静态站。三容器(api / cron / web)。检索按 `[edat]`(PubMed 入库日),每日北京 14:00 跑。另有周报模式:每周一北京 19:00 用 DeepSeek 把上一周文献总结成按「病种 × 类型」的中文综述(见下「周报」)。
+PubMed 胸外文献每日监控站:PubMed 抓取 → LLM(当前 DeepSeek)分类翻译 → SQLite → snapshot JSON → Astro 静态站。三容器(api / cron / web)+ Caddy 前置 HTTPS。检索按 `[edat]`(PubMed 入库日),每日北京 14:00 跑。另有周报模式:每周一北京 19:00 用 DeepSeek 把上一周文献总结成按「病种 × 类型」的中文综述(见下「周报」)。站点已开源:https://github.com/Linastro/thoracic-weekly-website。
 
 ## 语言约定
 
@@ -55,7 +55,7 @@ ssh root@<host> 'docker run --rm -v thoracic-server_web_dist:/app/web_dist -v /t
 
 ## 服务器版本管理与回退(2026-08-13 起)
 
-服务器 `~/thoracic-server` **现在是 git 仓库**(基线 `600346e`),本地仓库仍是代码权威;两者互补 —— 本地 git 管代码演进,服务器 git 管"线上部署了什么"。改服务器前必走下面的节奏。
+服务器 `~/thoracic-server` **现在是 git 仓库**(基线 `600346e`),本地仓库仍是代码权威;两者互补 —— 本地 git 管代码演进,服务器 git 管"线上部署了什么"。本地仓库已开源并挂 `origin`(→ github.com/Linastro/thoracic-weekly-website),可正常 `git push`;服务器 git 则**绝不 push**(见红线)。改服务器前必走下面的节奏。
 
 ### 改动前:先打快照(一条命令留四个回退点)
 
@@ -125,5 +125,5 @@ ssh root@<host> 'cd ~/thoracic-server && git add -A && git commit -m "改了啥(
 - `HANDOFF.md` 已 gitignore,含服务器信息与完整踩坑记录 —— **接手前先读,永远不要 commit**。
 - 一次性运维脚本放 `.scratch/`(已 gitignore),不要混进产品代码。
 - 嵌套 ssh + `docker exec` + python 的引号极易出错(HTML 实体会漏进 SQL)。写成真实 `.py` 文件再 `scp` + `docker compose cp`,不要堆行内引号。
-- 品牌素材:`web/public/*.png`(brand-wordmark / linastro-logo)是仓库根目录原图(未纳入 git,只在本机)的 `sips` 缩放版且已 commit。改品牌视觉需用户重新提供原图;改图后 `Sidebar.astro` 的 img `width/height` 要跟新比例同步(light/dark 比例可能不一致)。
+- 品牌素材:`web/public/*.png`(brand-wordmark / linastro-logo)是仓库根目录原图(未纳入 git,只在本机)的 `sips` 缩放版且已 commit。改品牌视觉需用户重新提供原图;改图后 `Sidebar.astro` 的 img `width/height` 要跟新比例同步(light/dark 比例可能不一致)。二维码同理:`web/public/qrcode-xiaohongshu.jpg`(作者页小红书)与 `qrcode-wechat.jpg`(项目简介页北医三院公众号)已 commit;根目录源图 `小红书二维码.jpg` / `北医三院胸外科公众号二维码.jpg` 未纳入 git 且 `.gitignore` 未覆盖。
 - **ICP 备案号**:`Sidebar.astro` 底部 `.sidebar-footer` 里是 `京ICP备2026051313号`(法定要求,链接 beian.miit.gov.cn),别删。
