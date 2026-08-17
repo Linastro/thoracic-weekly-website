@@ -46,7 +46,7 @@ web/node_modules/
 /linastro-logo-*.png
 
 # 二维码源图(仅本机;web/public/ 下是缩放/重命名版,已 commit)
-/小红书二维码.jpg
+/小红书二维码.png
 /北医三院胸外科公众号二维码.jpg
 
 # 服务器数据备份(勿提交)
