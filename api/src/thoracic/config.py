@@ -29,10 +29,11 @@ class Settings(BaseSettings):
     # PubMed
     PUBMED_API_KEY: str = ""
 
-    # MiniMax M3 (OpenAI 兼容 chat completions)
-    LLM_BASE_URL: str = "https://api.MiniMax.chat/v1"
+    # DeepSeek(OpenAI 兼容 chat completions)。模型名 2026-09 起由 deepseek-v4-flash 更名 deepseek-flash,
+    # 旧名虽仍被服务端映射,但不能依赖别名(见 HANDOFF)。
+    LLM_BASE_URL: str = "https://api.deepseek.com/v1"
     LLM_API_KEY: str = ""
-    LLM_MODEL: str = "MiniMax-M3"
+    LLM_MODEL: str = "deepseek-flash"
     LLM_TIMEOUT_SECONDS: int = 60
     LLM_MAX_CONCURRENT: int = 3
     LLM_BATCH_SIZE: int = 10

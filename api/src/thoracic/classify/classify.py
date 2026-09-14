@@ -5,7 +5,7 @@ import aiosqlite
 from thoracic.config import settings
 from thoracic.llm.cache import cache_get, cache_set
 from thoracic.llm.client import MiniMaxClient, default_client
-from thoracic.llm.errors import LlmAuthError, LlmError, LlmJsonParseError, LlmRateLimitError, LlmServerError
+from thoracic.llm.errors import LlmJsonParseError
 from thoracic.llm.prompts.classify import SYSTEM_PROMPT as CLASSIFY_SYSTEM_PROMPT, build_user_payload as build_classify_user_payload
 from thoracic.llm.schemas import ArticleClassification
 from .rules import fallback_type, fallback_title_zh, fallback_abstract_zh
@@ -18,15 +18,23 @@ def _ensure_input_minimum(record: dict) -> dict:
 def _build_cache_payload(item: ArticleClassification) -> dict:
     return item.model_dump()
 
-async def _llm_classify_chunk(client: MiniMaxClient, chunk: list[dict]) -> list[ArticleClassification]:
-    data = await client.chat_json([{"role":"system","content":CLASSIFY_SYSTEM_PROMPT},{"role":"user","content":build_classify_user_payload(chunk)}])
-    items_raw = data.get("items")
-    if not isinstance(items_raw, list): raise LlmJsonParseError(f"response missing 'items' list: {data}")
-    by = {}
-    for raw in items_raw:
-        try: by[str(raw["pmid"])] = ArticleClassification(**raw)
-        except Exception as e: log.warning("invalid classification: %s", e)
-    return [by[r["pmid"]] for r in chunk if r["pmid"] in by]
+async def _llm_classify_chunk(client: MiniMaxClient, chunk: list[dict], *, parse_retries: int = 1) -> list[ArticleClassification]:
+    """单个 chunk 调用 LLM;输出解析失败(模型偶发返回非 JSON/截断)重试,仍失败才抛给调用方兜底。"""
+    last_exc: LlmJsonParseError | None = None
+    for attempt in range(parse_retries + 1):
+        try:
+            data = await client.chat_json([{"role":"system","content":CLASSIFY_SYSTEM_PROMPT},{"role":"user","content":build_classify_user_payload(chunk)}])
+            items_raw = data.get("items")
+            if not isinstance(items_raw, list): raise LlmJsonParseError(f"response missing 'items' list: {data}")
+            by = {}
+            for raw in items_raw:
+                try: by[str(raw["pmid"])] = ArticleClassification(**raw)
+                except Exception as e: log.warning("invalid classification: %s", e)
+            return [by[r["pmid"]] for r in chunk if r["pmid"] in by]
+        except LlmJsonParseError as e:
+            last_exc = e
+            log.warning("LLM 解析失败(第 %d/%d 次): %s", attempt + 1, parse_retries + 1, str(e)[:300])
+    raise last_exc
 
 def _heuristic_record(record: dict) -> ArticleClassification:
     return ArticleClassification(pmid=record["pmid"], type=fallback_type(record["publication_types"],record["title"],record["abstract"]), disease=record.get("disease_hint") or "lung_cancer", exclude=False, exclude_reason=None, title_zh=fallback_title_zh(record["title"]), abstract_zh=fallback_abstract_zh(record["abstract"]))
@@ -40,19 +48,20 @@ async def classify_and_translate_batch(records: list[dict], conn: aiosqlite.Conn
             p = await cache_get(conn, r["pmid"])
             if p is not None: cached[r["pmid"]] = p
     uncached = [r for r in normalized if r["pmid"] not in cached]
-    try:
-        chunks = [uncached[i:i+batch_size] for i in range(0,len(uncached),batch_size)]
-        results = await asyncio.gather(*[_llm_classify_chunk(client,c) for c in chunks])
-        for chunk, items in zip(chunks, results):
-            by = {x.pmid:x for x in items}
-            for r in chunk:
-                item = by.get(r["pmid"]) or _heuristic_record(r)
-                cached[r["pmid"]] = _build_cache_payload(item); await cache_set(conn,r["pmid"],cached[r["pmid"]],model=client.model)
-            await conn.commit()
-    except (LlmAuthError,LlmRateLimitError,LlmServerError,LlmError,LlmJsonParseError) as e:
-        log.error("LLM failed; heuristic fallback: %s", e)
-        for r in uncached:
-            cached[r["pmid"]] = _build_cache_payload(_heuristic_record(r)); await cache_set(conn,r["pmid"],cached[r["pmid"]],model=client.model)
+    chunks = [uncached[i:i+batch_size] for i in range(0,len(uncached),batch_size)]
+    # return_exceptions:单个 chunk 失败只兜底该 chunk。旧实现直接 gather,任一 chunk 抛错
+    # 会走整批兜底 —— 2026-09-12 一次解析失败曾让当天 56 篇全部退化成英文原文。
+    results = await asyncio.gather(*[_llm_classify_chunk(client,c) for c in chunks], return_exceptions=True)
+    for chunk, result in zip(chunks, results):
+        if isinstance(result, BaseException):
+            log.error("LLM failed; heuristic fallback for chunk (%d 篇): %s", len(chunk), result)
+            items: list[ArticleClassification] = []
+        else:
+            items = result
+        by = {x.pmid:x for x in items}
+        for r in chunk:
+            item = by.get(r["pmid"]) or _heuristic_record(r)
+            cached[r["pmid"]] = _build_cache_payload(item); await cache_set(conn,r["pmid"],cached[r["pmid"]],model=client.model)
         await conn.commit()
     from datetime import datetime, timezone
     now = datetime.now(timezone.utc).isoformat()

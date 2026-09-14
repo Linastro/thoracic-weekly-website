@@ -126,7 +126,10 @@ class MiniMaxClient:
         try:
             return parse_strict_json_object(content)
         except ValueError as e:
-            raise LlmJsonParseError(f"content not JSON: {content[:200]}") from e
+            # 长度 + 头尾片段:只记前 200 字符无法区分「输出截断」与「格式损坏」(2026-09-11 排障教训)。
+            raise LlmJsonParseError(
+                f"content not JSON ({len(content)} chars; head={content[:120]!r}; tail={content[-120:]!r})"
+            ) from e
 
 
 # 模块级默认 client(从 settings 读)。无 API key 时不会立即报错,首次 chat 才 raise。
